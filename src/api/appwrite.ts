@@ -3,6 +3,10 @@ import {
   APPWRITE_DATABASE_ID,
   COLLECTION_USERS,
   COLLECTION_TRUCKS,
+  COLLECTION_FAVORITES,
+  COLLECTION_MENUS,
+  COLLECTION_MENU_ITEMS,
+  COLLECTION_REVIEWS
 } from '../constants/databaseConstants';
 
 // Initialize Appwrite client
@@ -27,6 +31,11 @@ export async function signIn(email: string, password: string) {
 // Auth: Get current user
 export async function getCurrentUser() {
   return account.get();
+}
+
+// Auth: Sign out
+export async function signOut() {
+  return account.deleteSession('current');
 }
 
 // Fetch all trucks for a specific driver
@@ -128,5 +137,35 @@ export async function updateTruckAvailability(truckId: string, available: boolea
   } catch (error) {
     console.log('updateTruckAvailability error:', error);
     return null;
+  }
+}
+
+// Fetch menu items for a truck
+export async function fetchMenuItemsByTruckId(truckId: string) {
+  try {
+    const res = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENU_ITEMS,
+      [Query.equal('truck_id', truckId)]
+    );
+    return res.documents;
+  } catch (error) {
+    console.log('fetchMenuItemsByTruckId error:', error);
+    return [];
+  }
+}
+
+// Fetch reviews for a truck
+export async function fetchReviewsByTruckId(truckId: string) {
+  try {
+    const res = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_REVIEWS,
+      [Query.equal('truck_id', truckId)]
+    );
+    return res.documents;
+  } catch (error) {
+    console.log('fetchReviewsByTruckId error:', error);
+    return [];
   }
 }

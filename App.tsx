@@ -11,6 +11,8 @@ import SignIn from './src/pages/SignIn';
 import SignUp from './src/pages/SignUp';
 import CustomerAccount from './src/pages/CustomerAccount';
 import MapScreen from './src/pages/MapScreen';
+import DriverTabs from './src/navigation/DriverTabs';
+import DriverProfile from './src/pages/DriverProfile';
 
 const Stack = createNativeStackNavigator();
 
@@ -59,7 +61,7 @@ export default function App() {
   let initialRoute = "SignIn";
   if (user) {
     if (user.role === "driver") {
-      initialRoute = "DriverDashboard";
+      initialRoute = "DriverTabs";
     } else {
       initialRoute = "CustomerDashboard";
     }
@@ -67,22 +69,17 @@ export default function App() {
 
   return (
     <NavigationContainer>
-      <Stack.Navigator
-        initialRouteName={initialRoute}
-        screenOptions={{ headerShown: false }}
-      >
-        <Stack.Screen name="SignIn">
-          {props => <SignIn {...props} onSignIn={refreshUser} />}
-        </Stack.Screen>
-        <Stack.Screen name="SignUp">
-          {props => <SignUp {...props} onSignUp={refreshUser} />}
-        </Stack.Screen>
-        <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
-        <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
-        <Stack.Screen name="TruckDetails" component={TruckDetails} />
-        <Stack.Screen name="CustomerAccount" component={CustomerAccount} />
-        <Stack.Screen name="MapScreen" component={MapScreen} />
-      </Stack.Navigator>
+<Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+  <Stack.Screen name="SignIn" component={SignIn} />
+  <Stack.Screen name="SignUp" component={SignUp} />
+  <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
+  <Stack.Screen name="CustomerAccount" component={CustomerAccount} />
+  <Stack.Screen name="DriverTabs" component={DriverTabs} />
+  <Stack.Screen name="MapScreen" component={MapScreen} />
+  <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
+  <Stack.Screen name="TruckDetails" component={TruckDetails} />
+  <Stack.Screen name="DriverProfile" component={DriverProfile} />
+</Stack.Navigator>
     </NavigationContainer>
   );
 }

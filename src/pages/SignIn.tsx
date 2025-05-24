@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native';
 import { signIn, fetchProfileById, getCurrentUser, databases } from '../api/appwrite';
 import { Query } from 'react-native-appwrite';
 import { APPWRITE_DATABASE_ID, COLLECTION_USERS } from '../constants/databaseConstants';
@@ -9,21 +9,16 @@ export default function SignIn({ navigation }: any) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  // Simple email validation
   const isValidEmail = (input: string) => /\S+@\S+\.\S+/.test(input);
 
   const handleSignIn = async () => {
     setLoading(true);
     try {
       let emailToUse = emailOrUsername;
-      console.log('emailToUse:', emailToUse); // <-- Add this log
-
-      // If not an email, treat as username and look up the email
       if (!isValidEmail(emailOrUsername)) {
-        // Query your users collection for the username
         const res = await databases.listDocuments(
-          APPWRITE_DATABASE_ID, // your database ID
-          COLLECTION_USERS,                // your collection ID
+          APPWRITE_DATABASE_ID,
+          COLLECTION_USERS,
           [Query.equal('user_name', emailOrUsername.trim())]
         );
         if (res.total === 0) {
@@ -31,7 +26,6 @@ export default function SignIn({ navigation }: any) {
           setLoading(false);
           return;
         }
-        // You must have stored the email in the user document at sign-up
         emailToUse = res.documents[0].email;
         if (!emailToUse) {
           Alert.alert('Sign In Error', 'No email found for this username.');
@@ -39,23 +33,14 @@ export default function SignIn({ navigation }: any) {
           return;
         }
       }
-
-      console.log('emailToUse2:', emailToUse); // <-- Add this log
       await signIn(emailToUse, password);
       const user = await getCurrentUser();
-      console.log('getCurrentUser result:', user); // <-- Add this log
-      console.log('About to fetch profile for userId:', user.$id, typeof user.$id);
-
       if (!user || !user.$id) {
         Alert.alert('Sign In Error', 'Could not retrieve user information after sign in.');
         setLoading(false);
         return;
       }
-
-      console.log('Fetching profile for userId:', user.$id); // <-- Add this log
       const profile = await fetchProfileById(user.$id);
-      console.log('Fetched profile:', profile); // <-- Add this log
-
       if (profile?.role === 'driver') {
         navigation.reset({ index: 0, routes: [{ name: 'DriverDashboard' }] });
       } else if (profile?.role === 'customer') {
@@ -64,30 +49,137 @@ export default function SignIn({ navigation }: any) {
         Alert.alert('Profile missing role', 'Could not determine user role.');
       }
     } catch (error: any) {
-      console.log('Sign In Error details:', error); // <-- Add this log
       Alert.alert('Sign In Error', error?.message || error?.response?.message || 'Unknown error');
     }
     setLoading(false);
   };
 
   return (
-    <View style={{ padding: 24 }}>
-      <Text style={{ fontSize: 24, marginBottom: 16 }}>Sign In</Text>
-      <TextInput
-        placeholder="Email or Username"
-        value={emailOrUsername}
-        onChangeText={setEmailOrUsername}
-        style={{ marginBottom: 8, borderWidth: 1, padding: 8 }}
-      />
-      <TextInput
-        placeholder="Password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-        style={{ marginBottom: 8, borderWidth: 1, padding: 8 }}
-      />
-      <Button title={loading ? "Signing In..." : "Sign In"} onPress={handleSignIn} disabled={loading} />
-      <Button title="Sign Up" onPress={() => navigation.navigate('SignUp')} />
-    </View>
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: '#F28C28' }}
+      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    >
+      <View style={styles.container}>
+        {/* Illustrations at the top, in normal layout flow */}
+        <View style={styles.illustrationsRow} pointerEvents="none">
+          <Image source={require('../../assets/burger.png')} style={styles.illustration} />
+          <Image source={require('../../assets/fries.png')} style={styles.illustration} />
+        </View>
+        <Text style={styles.logo}>WhatTheTruck</Text>
+        <Image source={require('../../assets/logo.png')} style={styles.truckImage} />
+        <View style={styles.inputsContainer}>
+          <TextInput
+            placeholder="Email/username"
+            placeholderTextColor="#B85C38"
+            value={emailOrUsername}
+            onChangeText={setEmailOrUsername}
+            style={styles.input}
+            autoCapitalize="none"
+          />
+          <TextInput
+            placeholder="Password"
+            placeholderTextColor="#B85C38"
+            value={password}
+            onChangeText={setPassword}
+            secureTextEntry
+            style={styles.input}
+          />
+          <TouchableOpacity
+            onPress={() => Alert.alert('Forgot password?', 'Password reset coming soon!')}
+            style={{ alignSelf: 'flex-end', marginBottom: 8 }}
+          >
+            <Text style={styles.forgotText}>Forgot password?</Text>
+          </TouchableOpacity>
+        </View>
+        <TouchableOpacity
+          style={styles.signInButton}
+          onPress={handleSignIn}
+          disabled={loading}
+        >
+          <Text style={styles.signInButtonText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+          <Text style={styles.createAccountText}>Create Account</Text>
+        </TouchableOpacity>
+      </View>
+    </KeyboardAvoidingView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    padding: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#F28C28',
+  },
+  illustrationsRow: {
+    flexDirection: 'row',
+    width: '100%',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  illustration: {
+    width: 60,
+    height: 60,
+    resizeMode: 'contain',
+    opacity: 0.8,
+  },
+  logo: {
+    fontSize: 40,
+    fontWeight: 'bold',
+    color: '#fff',
+    marginBottom: 16,
+    marginTop: 60,
+    textAlign: 'center',
+  },
+  truckImage: {
+    width: 160,
+    height: 110,
+    resizeMode: 'contain',
+    marginBottom: 24,
+  },
+  inputsContainer: {
+    width: '100%',
+    marginBottom: 16,
+  },
+  input: {
+    backgroundColor: '#FFF6E9',
+    borderRadius: 16,
+    padding: 16,
+    fontSize: 18,
+    marginBottom: 16,
+    color: '#B85C38',
+    borderWidth: 0,
+    width: '100%', // Add this line
+  },
+  forgotText: {
+    color: '#B85C38',
+    fontSize: 14,
+    marginLeft: 8,
+    marginBottom: 8,
+  },
+  signInButton: {
+    backgroundColor: '#D8572A',
+    borderRadius: 20,
+    paddingVertical: 16,
+    paddingHorizontal: 80,
+    marginTop: 8,
+    marginBottom: 16,
+    alignItems: 'center',
+    width: '100%',
+  },
+  signInButtonText: {
+    color: '#fff',
+    fontWeight: 'bold',
+    fontSize: 22,
+  },
+  createAccountText: {
+    color: '#fff',
+    fontSize: 18,
+    marginTop: 8,
+    textAlign: 'center',
+    textDecorationLine: 'underline',
+  },
+});
