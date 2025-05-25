@@ -69,7 +69,6 @@ export default function App() {
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
         <Stack.Screen name="DriverTabs" component={DriverTabs} />
-        {/* Remove CustomerDashboard, CustomerAccount, MapScreen from root stack */}
       </Stack.Navigator>
     </NavigationContainer>
   );

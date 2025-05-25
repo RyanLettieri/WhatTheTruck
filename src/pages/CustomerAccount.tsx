@@ -1,5 +1,16 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, Button, Alert } from 'react-native';
+import { 
+  View, 
+  Text, 
+  TouchableOpacity, 
+  StyleSheet, 
+  Alert, 
+  ScrollView, 
+  Image, 
+  Switch,
+  ActivityIndicator
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchProfileById, updateProfileById, getCurrentUser, account } from '../api/appwrite';
 
 export default function CustomerAccount({ navigation }: any) {
@@ -7,9 +18,21 @@ export default function CustomerAccount({ navigation }: any) {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(true);
+  
+  // Settings state
+  const [pushNotifications, setPushNotifications] = useState(true);
+  const [emailNotifications, setEmailNotifications] = useState(true);
+  const [locationSharing, setLocationSharing] = useState(true);
+
+  // Mock additional user data - replace with actual data
+  const userData = {
+    name: username || (user?.name ?? 'Customer Name'),
+    email: email || (user?.email ?? 'customer@example.com'),
+    phone: user?.phone || '(555) 123-4567', // Add phone to your database if needed
+    profilePicture: user?.profilePicture || null, // You can add actual image URI here
+  };
 
   useEffect(() => {
-    // Fetch current Appwrite user
     getCurrentUser()
       .then(u => {
         setUser(u);
@@ -23,42 +46,280 @@ export default function CustomerAccount({ navigation }: any) {
       .catch(() => setLoading(false));
   }, []);
 
-  const handleSave = async () => {
-    if (!user?.$id) return;
-    setLoading(true);
-    await updateProfileById(user.$id, { username });
-    setLoading(false);
-    Alert.alert('Profile updated!');
-  };
-
   const handleSignOut = async () => {
-    try {
-      await account.deleteSession('current');
-      navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
-    } catch (error) {
-      Alert.alert('Sign Out Error', 'Failed to sign out.');
-    }
+    Alert.alert(
+      'Sign Out',
+      'Are you sure you want to sign out?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Sign Out',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              await account.deleteSession('current');
+              navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+            } catch (error) {
+              Alert.alert('Sign Out Error', 'Failed to sign out.');
+            }
+          },
+        },
+      ]
+    );
   };
 
-  if (loading) return <View><Text>Loading...</Text></View>;
+  const handleEditProfile = () => {
+    Alert.alert('Edit Profile', 'Edit profile feature coming soon!');
+  };
 
-  return (
-    <View style={{ padding: 24 }}>
-      <Text style={{ fontSize: 24, marginBottom: 16 }}>Account Settings</Text>
-      <Text>Email:</Text>
-      <TextInput value={email} editable={false} style={{ marginBottom: 8, borderWidth: 1, padding: 8 }} />
-      <Text>Username:</Text>
-      <TextInput value={username} editable={false} onChangeText={setUsername} style={{ marginBottom: 8, borderWidth: 1, padding: 8 }} />
-      <Button
-        title="Back to Dashboard"
-        onPress={() => navigation.navigate('CustomerDashboard')}
-      />
-      <View style={{ height: 16 }} />
-      <Button
-        title="Sign Out"
-        color="#d9534f"
-        onPress={handleSignOut}
+  const handleChangePassword = () => {
+    Alert.alert('Change Password', 'Change password feature coming soon!');
+  };
+
+  const handleOrderHistory = () => {
+    Alert.alert('Order History', 'Order history feature coming soon!');
+  };
+
+  const handlePaymentMethods = () => {
+    Alert.alert('Payment Methods', 'Payment methods feature coming soon!');
+  };
+
+  const handleAddresses = () => {
+    Alert.alert('Saved Addresses', 'Saved addresses feature coming soon!');
+  };
+
+  const handleFAQs = () => {
+    Alert.alert('FAQs', 'Frequently Asked Questions coming soon!');
+  };
+
+  const handleReportIssue = () => {
+    Alert.alert('Report Issue', 'Report issue feature coming soon!');
+  };
+
+  const handleContactSupport = () => {
+    Alert.alert('Contact Support', 'Contact support feature coming soon!');
+  };
+
+  const handleRateApp = () => {
+    Alert.alert('Rate App', 'Rate app feature coming soon!');
+  };
+
+  const renderSection = (title: string, children: React.ReactNode) => (
+    <View style={styles.section}>
+      <Text style={styles.sectionTitle}>{title}</Text>
+      {children}
+    </View>
+  );
+
+  const renderMenuItem = (
+    icon: string, 
+    title: string, 
+    onPress: () => void, 
+    showArrow = true,
+    textColor = '#333'
+  ) => (
+    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
+      <View style={styles.menuItemLeft}>
+        <Ionicons name={icon as any} size={20} color="#666" />
+        <Text style={[styles.menuItemText, { color: textColor }]}>{title}</Text>
+      </View>
+      {showArrow && <Ionicons name="chevron-forward" size={16} color="#999" />}
+    </TouchableOpacity>
+  );
+
+  const renderToggleItem = (
+    icon: string,
+    title: string,
+    value: boolean,
+    onValueChange: (value: boolean) => void
+  ) => (
+    <View style={styles.menuItem}>
+      <View style={styles.menuItemLeft}>
+        <Ionicons name={icon as any} size={20} color="#666" />
+        <Text style={styles.menuItemText}>{title}</Text>
+      </View>
+      <Switch
+        value={value}
+        onValueChange={onValueChange}
+        trackColor={{ false: '#E0E0E0', true: '#F28C28' }}
+        thumbColor={value ? '#fff' : '#f4f3f4'}
       />
     </View>
   );
+
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FCFAF7' }}>
+        <ActivityIndicator size="large" color="#F28C28" />
+        <Text style={{ marginTop: 16, fontSize: 16, color: '#666' }}>Loading account...</Text>
+      </View>
+    );
+  }
+
+  return (
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      {/* Customer Info Section */}
+      {renderSection('Account Info', (
+        <View>
+          <View style={styles.profileHeader}>
+            <View style={styles.profileImageContainer}>
+              {userData.profilePicture ? (
+                <Image source={{ uri: userData.profilePicture }} style={styles.profileImage} />
+              ) : (
+                <View style={styles.profileImagePlaceholder}>
+                  <Ionicons name="person" size={40} color="#999" />
+                </View>
+              )}
+            </View>
+            <View style={styles.profileInfo}>
+              <Text style={styles.profileName}>{userData.name}</Text>
+              <Text style={styles.profileEmail}>{userData.email}</Text>
+              <Text style={styles.profilePhone}>{userData.phone}</Text>
+            </View>
+          </View>
+          {renderMenuItem('create-outline', 'Edit Profile', handleEditProfile)}
+        </View>
+      ))}
+
+      {/* Order Management Section */}
+      {renderSection('Orders & Preferences', (
+        <View>
+          {renderMenuItem('receipt-outline', 'Order History', handleOrderHistory)}
+          {renderMenuItem('card-outline', 'Payment Methods', handlePaymentMethods)}
+          {renderMenuItem('location-outline', 'Saved Addresses', handleAddresses)}
+        </View>
+      ))}
+
+      {/* Notifications & Settings Section */}
+      {renderSection('Notifications & Settings', (
+        <View>
+          {renderToggleItem(
+            'notifications-outline',
+            'Push Notifications',
+            pushNotifications,
+            setPushNotifications
+          )}
+          {renderToggleItem(
+            'mail-outline',
+            'Email Notifications',
+            emailNotifications,
+            setEmailNotifications
+          )}
+          {renderToggleItem(
+            'location-outline',
+            'Location Sharing',
+            locationSharing,
+            setLocationSharing
+          )}
+          {renderMenuItem('settings-outline', 'App Settings', () => Alert.alert('App Settings', 'Coming soon!'))}
+        </View>
+      ))}
+
+      {/* Account Actions Section */}
+      {renderSection('Account Actions', (
+        <View>
+          {renderMenuItem('key-outline', 'Change Password', handleChangePassword)}
+          {renderMenuItem('log-out-outline', 'Sign Out', handleSignOut, false, '#D8572A')}
+        </View>
+      ))}
+
+      {/* Help & Support Section */}
+      {renderSection('Help & Support', (
+        <View>
+          {renderMenuItem('help-circle-outline', 'FAQs', handleFAQs)}
+          {renderMenuItem('bug-outline', 'Report an Issue', handleReportIssue)}
+          {renderMenuItem('mail-outline', 'Contact Support', handleContactSupport)}
+          {renderMenuItem('star-outline', 'Rate the App', handleRateApp)}
+        </View>
+      ))}
+
+      <View style={{ height: 40 }} />
+    </ScrollView>
+  );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#FCFAF7',
+  },
+  section: {
+    backgroundColor: '#fff',
+    marginHorizontal: 16,
+    marginTop: 16,
+    borderRadius: 12,
+    paddingVertical: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.1,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#333',
+    paddingHorizontal: 16,
+    paddingTop: 8,
+    paddingBottom: 12,
+  },
+  profileHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  profileImageContainer: {
+    marginRight: 16,
+  },
+  profileImage: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+  },
+  profileImagePlaceholder: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: '#f0f0f0',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    color: '#333',
+    marginBottom: 4,
+  },
+  profileEmail: {
+    fontSize: 16,
+    color: '#666',
+    marginBottom: 2,
+  },
+  profilePhone: {
+    fontSize: 16,
+    color: '#666',
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 0.5,
+    borderBottomColor: '#f0f0f0',
+  },
+  menuItemLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+  },
+  menuItemText: {
+    fontSize: 16,
+    marginLeft: 12,
+    color: '#333',
+  },
+});

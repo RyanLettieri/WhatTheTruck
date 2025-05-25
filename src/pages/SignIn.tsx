@@ -42,9 +42,9 @@ export default function SignIn({ navigation }: any) {
       }
       const profile = await fetchProfileById(user.$id);
       if (profile?.role === 'driver') {
-        navigation.reset({ index: 0, routes: [{ name: 'DriverTabs' }] });
+        navigation.reset({ index: 0, routes: [{ name: 'DriverDashboard' }] });
       } else if (profile?.role === 'customer') {
-        navigation.reset({ index: 0, routes: [{ name: 'CustomerTabs' }] }); // Changed from 'CustomerDashboard'
+        navigation.reset({ index: 0, routes: [{ name: 'CustomerDashboard' }] });
       } else {
         Alert.alert('Profile missing role', 'Could not determine user role.');
       }

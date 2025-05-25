@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import CustomerDashboard from '../pages/CustomerDashboard';
 import MapScreen from '../pages/MapScreen';
+import OrdersScreen from '../pages/MapScreen';
 import CustomerAccount from '../pages/CustomerAccount';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -38,7 +39,7 @@ export default function CustomerTabs() {
     >
       <Tab.Screen name="Dashboard" component={DashboardStack} />
       <Tab.Screen name="Map" component={MapScreen} />
-      <Tab.Screen name="Orders" component={CustomerDashboard} />
+      <Tab.Screen name="Orders" component={OrdersScreen} />
       <Tab.Screen name="Account" component={CustomerAccount} />
     </Tab.Navigator>
   );

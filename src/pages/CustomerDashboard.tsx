@@ -56,7 +56,7 @@ export default function CustomerDashboard({ navigation }: any) {
         />
         <TouchableOpacity
           style={styles.settingsButton}
-          onPress={() => navigation.navigate('CustomerAccount')}
+          onPress={() => navigation.navigate('Account')}
         >
           <Text style={{ fontSize: 20 }}>⚙️</Text>
         </TouchableOpacity>
