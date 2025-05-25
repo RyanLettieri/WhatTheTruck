@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { View, Text, FlatList, TouchableOpacity, StyleSheet, Image, ActivityIndicator } from 'react-native';
 import { fetchTrucks, getCurrentUser, updateTruckAvailability } from '../api/appwrite';
-import { Ionicons } from '@expo/vector-icons';
 
 export default function DriverDashboard({ navigation }: any) {
   const [trucks, setTrucks] = useState<any[]>([]);
@@ -55,7 +54,10 @@ export default function DriverDashboard({ navigation }: any) {
           </TouchableOpacity>
           <TouchableOpacity
             style={[styles.actionButton, { marginLeft: 8 }]}
-            onPress={() => navigation.navigate('OrdersScreen', { truck: item })}
+            onPress={() => navigation.navigate('Orders', { 
+              screen: 'OrdersList', 
+              params: { truck: item } 
+            })}
           >
             <Text style={styles.actionButtonText}>View Sales</Text>
           </TouchableOpacity>
@@ -74,13 +76,6 @@ export default function DriverDashboard({ navigation }: any) {
 
   return (
     <View style={{ flex: 1, paddingTop: 32, backgroundColor: '#faf8f3' }}>
-      {/* Profile Icon in Top Right */}
-      <TouchableOpacity
-        style={{ position: 'absolute', top: 40, right: 20, zIndex: 10 }}
-        onPress={() => navigation.navigate('DriverProfile')}
-      >
-        <Ionicons name="person-circle-outline" size={38} color="#D8572A" />
-      </TouchableOpacity>
       <Text style={styles.header}>WhatTheTruck</Text>
       <Text style={styles.sectionTitle}>Food Trucks</Text>
       <FlatList

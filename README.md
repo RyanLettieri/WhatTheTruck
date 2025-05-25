@@ -52,6 +52,7 @@ WhatTheTruck is a React Native mobile app that connects food truck drivers and c
 3. **Set up environment variables:**
     - Copy `.env.example` to `.env` and fill in your Appwrite credentials if needed.
 
+
 4. **Start the Expo development server:**
     ```sh
     expo start

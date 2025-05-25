@@ -126,7 +126,12 @@ export default function CustomerDashboard({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#FCFAF7', padding: 16 },
+  container: { 
+    flex: 1, 
+    backgroundColor: '#FCFAF7', 
+    padding: 16,
+    paddingBottom: 100, // Add padding to prevent overlap with tab bar
+  },
   searchContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
   searchInput: {
     flex: 1,
@@ -195,6 +200,7 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     alignItems: 'center',
     marginTop: 24,
+    marginBottom: 20, // Add bottom margin for spacing
   },
   mapButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
 });

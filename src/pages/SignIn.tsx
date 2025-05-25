@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
 import { signIn, fetchProfileById, getCurrentUser, databases } from '../api/appwrite';
 import { Query } from 'react-native-appwrite';
 import { APPWRITE_DATABASE_ID, COLLECTION_USERS } from '../constants/databaseConstants';
@@ -42,9 +42,9 @@ export default function SignIn({ navigation }: any) {
       }
       const profile = await fetchProfileById(user.$id);
       if (profile?.role === 'driver') {
-        navigation.reset({ index: 0, routes: [{ name: 'DriverDashboard' }] });
+        navigation.reset({ index: 0, routes: [{ name: 'DriverTabs' }] });
       } else if (profile?.role === 'customer') {
-        navigation.reset({ index: 0, routes: [{ name: 'CustomerDashboard' }] });
+        navigation.reset({ index: 0, routes: [{ name: 'CustomerTabs' }] }); // Changed from 'CustomerDashboard'
       } else {
         Alert.alert('Profile missing role', 'Could not determine user role.');
       }
@@ -55,54 +55,58 @@ export default function SignIn({ navigation }: any) {
   };
 
   return (
-    <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: '#F28C28' }}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+    <ImageBackground
+      source={require('../../assets/background-image.png')} // Replace with your image path
+      style={{ flex: 1 }}
+      resizeMode="cover"
     >
-      <View style={styles.container}>
-        {/* Illustrations at the top, in normal layout flow */}
-        <View style={styles.illustrationsRow} pointerEvents="none">
-          <Image source={require('../../assets/burger.png')} style={styles.illustration} />
-          <Image source={require('../../assets/fries.png')} style={styles.illustration} />
-        </View>
-        <Text style={styles.logo}>WhatTheTruck</Text>
-        <Image source={require('../../assets/logo.png')} style={styles.truckImage} />
-        <View style={styles.inputsContainer}>
-          <TextInput
-            placeholder="Email/username"
-            placeholderTextColor="#B85C38"
-            value={emailOrUsername}
-            onChangeText={setEmailOrUsername}
-            style={styles.input}
-            autoCapitalize="none"
-          />
-          <TextInput
-            placeholder="Password"
-            placeholderTextColor="#B85C38"
-            value={password}
-            onChangeText={setPassword}
-            secureTextEntry
-            style={styles.input}
-          />
+      <KeyboardAvoidingView
+        style={{ flex: 1 }}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+        <View style={styles.container}>
+          <View style={{ position: 'absolute', top: 20, left: 0, right: 0, alignItems: 'center', zIndex: 10 }}>
+            <Text style={styles.logo}>WhatTheTruck</Text>
+          </View>
+          <View style={{ flex: 1 }} />
+          {/* <View style={{ position: 'absolute', top: 10, left: 0, right: 0, alignItems: 'center', zIndex: 20 }}></View> */}
+          <View style={styles.inputsContainer}>
+            <TextInput
+              placeholder="Email/username"
+              placeholderTextColor="#B85C38"
+              value={emailOrUsername}
+              onChangeText={setEmailOrUsername}
+              style={styles.input}
+              autoCapitalize="none"
+            />
+            <TextInput
+              placeholder="Password"
+              placeholderTextColor="#B85C38"
+              value={password}
+              onChangeText={setPassword}
+              secureTextEntry
+              style={styles.input}
+            />
+            <TouchableOpacity
+              onPress={() => Alert.alert('Forgot password?', 'Password reset coming soon!')}
+              style={{ alignSelf: 'flex-end', marginBottom: 8 }}
+            >
+                <Text style={[styles.forgotText, { color: '#fff', fontSize: 16 }]}>Forgot password?</Text>
+            </TouchableOpacity>
+          </View>
           <TouchableOpacity
-            onPress={() => Alert.alert('Forgot password?', 'Password reset coming soon!')}
-            style={{ alignSelf: 'flex-end', marginBottom: 8 }}
+            style={styles.signInButton}
+            onPress={handleSignIn}
+            disabled={loading}
           >
-            <Text style={styles.forgotText}>Forgot password?</Text>
+            <Text style={styles.signInButtonText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
+            <Text style={styles.createAccountText}>Create Account</Text>
           </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          style={styles.signInButton}
-          onPress={handleSignIn}
-          disabled={loading}
-        >
-          <Text style={styles.signInButtonText}>{loading ? 'Signing In...' : 'Sign In'}</Text>
-        </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('SignUp')}>
-          <Text style={styles.createAccountText}>Create Account</Text>
-        </TouchableOpacity>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </ImageBackground>
   );
 }
 
@@ -112,7 +116,6 @@ const styles = StyleSheet.create({
     padding: 24,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#F28C28',
   },
   illustrationsRow: {
     flexDirection: 'row',

@@ -4,15 +4,10 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getCurrentUser, fetchProfileById } from './src/api/appwrite';
 import { ActivityIndicator, View, Text, Image } from 'react-native';
 
-import CustomerDashboard from './src/pages/CustomerDashboard';
-import DriverDashboard from './src/pages/DriverDashboard';
-import TruckDetails from './src/pages/TruckDetails';
+import CustomerTabs from './src/navigation/CustomerTabs';
 import SignIn from './src/pages/SignIn';
 import SignUp from './src/pages/SignUp';
-import CustomerAccount from './src/pages/CustomerAccount';
-import MapScreen from './src/pages/MapScreen';
 import DriverTabs from './src/navigation/DriverTabs';
-import DriverProfile from './src/pages/DriverProfile';
 
 const Stack = createNativeStackNavigator();
 
@@ -63,23 +58,19 @@ export default function App() {
     if (user.role === "driver") {
       initialRoute = "DriverTabs";
     } else {
-      initialRoute = "CustomerDashboard";
+      initialRoute = "CustomerTabs"; // Changed from "CustomerDashboard"
     }
   }
 
   return (
     <NavigationContainer>
-<Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
-  <Stack.Screen name="SignIn" component={SignIn} />
-  <Stack.Screen name="SignUp" component={SignUp} />
-  <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
-  <Stack.Screen name="CustomerAccount" component={CustomerAccount} />
-  <Stack.Screen name="DriverTabs" component={DriverTabs} />
-  <Stack.Screen name="MapScreen" component={MapScreen} />
-  <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
-  <Stack.Screen name="TruckDetails" component={TruckDetails} />
-  <Stack.Screen name="DriverProfile" component={DriverProfile} />
-</Stack.Navigator>
+      <Stack.Navigator initialRouteName={initialRoute} screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="SignIn" component={SignIn} />
+        <Stack.Screen name="SignUp" component={SignUp} />
+        <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
+        <Stack.Screen name="DriverTabs" component={DriverTabs} />
+        {/* Remove CustomerDashboard, CustomerAccount, MapScreen from root stack */}
+      </Stack.Navigator>
     </NavigationContainer>
   );
 }
