@@ -7,15 +7,13 @@ import {
   StyleSheet,
   ScrollView,
   ActivityIndicator,
-  Switch,
   Alert,
-  Image,
   Platform,
   KeyboardAvoidingView
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as ImagePicker from 'expo-image-picker';
-import { Picker } from '@react-native-picker/picker';
+// Temporarily comment out image picker
+// import * as ImagePicker from 'expo-image-picker';
 import { getCurrentUser, fetchProfileById, addTruck } from '../api/appwrite';
 import { CUISINE_OPTIONS } from '../constants/cuisines';
 
@@ -24,8 +22,6 @@ export default function AddTruck({ navigation }) {
   const [truckName, setTruckName] = useState('');
   const [description, setDescription] = useState('');
   const [cuisineTypes, setCuisineTypes] = useState<string[]>([]);
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
   const [licenseNumber, setLicenseNumber] = useState('');
   const [truckImage, setTruckImage] = useState<string | null>(null);
   const [ownerName, setOwnerName] = useState('');
@@ -37,7 +33,6 @@ export default function AddTruck({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [cuisineDropdownVisible, setCuisineDropdownVisible] = useState(false);
-  const [imageUploading, setImageUploading] = useState(false);
 
   // Load user profile data
   useEffect(() => {
@@ -64,36 +59,12 @@ export default function AddTruck({ navigation }) {
     loadUserProfile();
   }, []);
 
+  // Temporarily disable image picker
   const pickImage = async () => {
-    try {
-      setImageUploading(true);
-      // Request permissions
-      if (Platform.OS !== 'web') {
-        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-        if (status !== 'granted') {
-          Alert.alert('Permission Required', 'We need access to your photos to upload a truck image.');
-          setImageUploading(false);
-          return;
-        }
-      }
-
-      // Launch image picker
-      const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-        base64: false,
-      });
-
-      if (!result.canceled) {
-        setTruckImage(result.assets[0].uri);
-      }
-    } catch (error) {
-      Alert.alert('Error', 'Failed to pick image. Please try again.');
-    } finally {
-      setImageUploading(false);
-    }
+    Alert.alert(
+      'Coming Soon', 
+      'Image upload functionality will be available in the next update.'
+    );
   };
 
   const handleCuisineSelect = (cuisine: string) => {
@@ -122,11 +93,6 @@ export default function AddTruck({ navigation }) {
       return false;
     }
 
-    if (!city.trim() || !state.trim()) {
-      Alert.alert('Missing Information', 'Please enter your primary location (city and state).');
-      return false;
-    }
-
     if (!agreeToTerms) {
       Alert.alert('Terms Required', 'Please agree to the Terms of Service and Privacy Policy.');
       return false;
@@ -144,6 +110,7 @@ export default function AddTruck({ navigation }) {
       
       if (!user) {
         Alert.alert('Error', 'You must be logged in to add a food truck.');
+        setSubmitting(false);
         return;
       }
 
@@ -152,10 +119,7 @@ export default function AddTruck({ navigation }) {
         cuisines: cuisineTypes,
         driver_id: user.$id,
         description: description,
-        city: city,
-        state: state,
         license_number: licenseNumber,
-        // Add image handling logic here
       });
 
       Alert.alert(
@@ -163,9 +127,19 @@ export default function AddTruck({ navigation }) {
         'Your food truck has been registered successfully.',
         [{ text: 'OK', onPress: () => navigation.goBack() }]
       );
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error adding truck:', error);
-      Alert.alert('Error', 'Failed to register your food truck. Please try again.');
+      
+      // More specific error handling
+      let errorMessage = 'Failed to register your food truck. Please try again.';
+      
+      if (error?.message?.includes('Missing required attribute')) {
+        errorMessage = 'There was a problem with the form data. Please check all fields and try again.';
+      } else if (error?.message) {
+        errorMessage = error.message;
+      }
+      
+      Alert.alert('Registration Failed', errorMessage);
     } finally {
       setSubmitting(false);
     }
@@ -184,6 +158,17 @@ export default function AddTruck({ navigation }) {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={{ flex: 1 }}
     >
+      <View style={styles.navHeader}>
+        <TouchableOpacity 
+          style={styles.backButton}
+          onPress={() => navigation.goBack()}
+        >
+          <Ionicons name="arrow-back" size={24} color="#333" />
+        </TouchableOpacity>
+        <Text style={styles.navTitle}>Add Food Truck</Text>
+        <View style={{ width: 24 }} />
+      </View>
+      
       <ScrollView style={styles.container}>
         {/* Header */}
         <View style={styles.header}>
@@ -267,25 +252,27 @@ export default function AddTruck({ navigation }) {
 
             {cuisineDropdownVisible && (
               <View style={styles.dropdownMenu}>
-                {CUISINE_OPTIONS.map((cuisine) => (
-                  <TouchableOpacity
-                    key={cuisine}
-                    style={styles.dropdownItem}
-                    onPress={() => handleCuisineSelect(cuisine)}
-                  >
-                    <View style={styles.checkboxContainer}>
-                      <View style={[
-                        styles.checkbox,
-                        cuisineTypes.includes(cuisine) && styles.checkboxChecked
-                      ]}>
-                        {cuisineTypes.includes(cuisine) && (
-                          <Ionicons name="checkmark" size={14} color="#fff" />
-                        )}
+                <ScrollView style={{ maxHeight: 200 }}>
+                  {CUISINE_OPTIONS.map((cuisine) => (
+                    <TouchableOpacity
+                      key={cuisine}
+                      style={styles.dropdownItem}
+                      onPress={() => handleCuisineSelect(cuisine)}
+                    >
+                      <View style={styles.checkboxContainer}>
+                        <View style={[
+                          styles.checkbox,
+                          cuisineTypes.includes(cuisine) && styles.checkboxChecked
+                        ]}>
+                          {cuisineTypes.includes(cuisine) && (
+                            <Ionicons name="checkmark" size={14} color="#fff" />
+                          )}
+                        </View>
+                        <Text style={styles.dropdownItemText}>{cuisine}</Text>
                       </View>
-                      <Text style={styles.dropdownItemText}>{cuisine}</Text>
-                    </View>
-                  </TouchableOpacity>
-                ))}
+                    </TouchableOpacity>
+                  ))}
+                </ScrollView>
               </View>
             )}
           </View>
@@ -306,30 +293,6 @@ export default function AddTruck({ navigation }) {
             <Text style={styles.charCount}>{description.length}/300</Text>
           </View>
 
-          {/* Location - 2 column layout */}
-          <View style={styles.rowContainer}>
-            <View style={[styles.inputGroup, { flex: 1, marginRight: 8 }]}>
-              <Text style={styles.label}>Primary City *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., Austin"
-                value={city}
-                onChangeText={setCity}
-              />
-            </View>
-            <View style={[styles.inputGroup, { flex: 1, marginLeft: 8 }]}>
-              <Text style={styles.label}>State *</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="e.g., TX"
-                value={state}
-                onChangeText={setState}
-                maxLength={2}
-                autoCapitalize="characters"
-              />
-            </View>
-          </View>
-
           {/* License Number */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Business License/Permit Number</Text>
@@ -341,25 +304,18 @@ export default function AddTruck({ navigation }) {
             />
           </View>
 
-          {/* Food Truck Photo */}
+          {/* Food Truck Photo - Temporarily Disabled */}
           <View style={styles.inputGroup}>
             <Text style={styles.label}>Food Truck Photo</Text>
             <TouchableOpacity 
               style={styles.imageUploadButton}
               onPress={pickImage}
-              disabled={imageUploading}
             >
-              {truckImage ? (
-                <Image source={{ uri: truckImage }} style={styles.previewImage} />
-              ) : (
-                <View style={styles.uploadPlaceholder}>
-                  <Ionicons name="camera" size={24} color="#999" />
-                  <Text style={styles.uploadText}>
-                    {imageUploading ? 'Uploading...' : 'Click to upload a photo of your truck'}
-                  </Text>
-                  <Text style={styles.uploadSubtext}>JPG or PNG (Max 5MB)</Text>
-                </View>
-              )}
+              <View style={styles.uploadPlaceholder}>
+                <Ionicons name="camera" size={24} color="#999" />
+                <Text style={styles.uploadText}>Image upload coming soon</Text>
+                <Text style={styles.uploadSubtext}>You can add photos after registration</Text>
+              </View>
             </TouchableOpacity>
           </View>
 
@@ -375,13 +331,7 @@ export default function AddTruck({ navigation }) {
               </View>
             </TouchableOpacity>
             <Text style={styles.termsText}>
-              I agree to the 
-              <Text style={styles.termsLink} onPress={() => navigation.navigate('TermsOfService')}>
-                {" "}Terms of Service
-              </Text> and 
-              <Text style={styles.termsLink} onPress={() => navigation.navigate('PrivacyPolicy')}>
-                {" "}Privacy Policy
-              </Text>
+              I agree to the Terms of Service and Privacy Policy
             </Text>
           </View>
 
@@ -411,6 +361,23 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#faf8f3',
   },
+  navHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    paddingTop: 50,
+    paddingBottom: 16,
+    backgroundColor: '#faf8f3',
+  },
+  navTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    color: '#333',
+  },
+  backButton: {
+    padding: 8,
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -420,7 +387,7 @@ const styles = StyleSheet.create({
   header: {
     backgroundColor: '#FF6B6B',
     padding: 20,
-    paddingTop: 60,
+    paddingTop: 20,
     paddingBottom: 30,
     borderBottomLeftRadius: 30,
     borderBottomRightRadius: 30,
@@ -511,8 +478,6 @@ const styles = StyleSheet.create({
     borderColor: '#ddd',
     borderRadius: 8,
     marginTop: 5,
-    maxHeight: 200,
-    overflow: 'scroll',
   },
   dropdownItem: {
     padding: 12,
@@ -540,6 +505,9 @@ const styles = StyleSheet.create({
     backgroundColor: '#FF6B6B',
     borderColor: '#FF6B6B',
   },
+  checkboxWrapper: {
+    padding: 8,
+  },
   imageUploadButton: {
     borderWidth: 2,
     borderColor: '#ddd',
@@ -563,18 +531,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
     fontSize: 12,
   },
-  previewImage: {
-    width: '100%',
-    height: 200,
-    resizeMode: 'cover',
-  },
   termsContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     marginVertical: 20,
-  },
-  checkboxWrapper: {
-    padding: 8,
   },
   termsText: {
     flex: 1,

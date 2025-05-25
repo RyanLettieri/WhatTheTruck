@@ -58,10 +58,14 @@ export async function addTruck({
   truck_name,
   cuisines,
   driver_id,
+  description,
+  license_number,
 }: {
   truck_name: string;
   cuisines: string[];
   driver_id: string;
+  description?: string;
+  license_number?: string;
 }) {
   try {
     const docId = ID.unique();
@@ -70,9 +74,11 @@ export async function addTruck({
       COLLECTION_TRUCKS,
       docId,
       {
-        // Remove 'id' field - Appwrite uses $id automatically
+        id: docId,
         truck_name,
         cuisines,
+        description: description || '',
+        license_number: license_number || '',
         available: false,
         created_at: new Date().toISOString(),
         driver_id,
@@ -81,7 +87,7 @@ export async function addTruck({
     return res;
   } catch (error) {
     console.log('addTruck error:', error);
-    return null;
+    throw error;
   }
 }
 
