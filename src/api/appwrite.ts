@@ -70,10 +70,10 @@ export async function addTruck({
       COLLECTION_TRUCKS,
       docId,
       {
-        id: docId,
+        // Remove 'id' field - Appwrite uses $id automatically
         truck_name,
         cuisines,
-        available: true,
+        available: false,
         created_at: new Date().toISOString(),
         driver_id,
       }
@@ -85,7 +85,7 @@ export async function addTruck({
   }
 }
 
-// Fetch profile by user ID (document ID)
+// Update fetchProfileById to handle missing profiles properly
 export async function fetchProfileById(userId: string) {
   try {
     const res = await databases.getDocument(
@@ -94,9 +94,14 @@ export async function fetchProfileById(userId: string) {
       userId
     );
     return res;
-  } catch (error) {
+  } catch (error: any) {
     console.log('fetchProfileById error:', error);
-    return null;
+    
+    // Don't return a default profile - return null instead
+    if (error.code === 404 || error.message?.includes('not found')) {
+      return null; // Return null, not a default profile
+    }
+    throw error; // Re-throw other errors
   }
 }
 
@@ -167,5 +172,28 @@ export async function fetchReviewsByTruckId(truckId: string) {
   } catch (error) {
     console.log('fetchReviewsByTruckId error:', error);
     return [];
+  }
+}
+
+// Create user profile document
+export async function createUserProfile(userId: string, data: {
+  email: string;
+  username: string;
+  role: 'customer' | 'driver';
+}) {
+  try {
+    const res = await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_USERS,
+      userId, // Use the auth user ID as document ID
+      {
+        ...data,
+        created_at: new Date().toISOString(),
+      }
+    );
+    return res;
+  } catch (error) {
+    console.log('createUserProfile error:', error);
+    throw error;
   }
 }

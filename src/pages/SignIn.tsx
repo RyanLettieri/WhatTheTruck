@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Alert, KeyboardAvoidingView, Platform, ImageBackground } from 'react-native';
-import { signIn, fetchProfileById, getCurrentUser, databases } from '../api/appwrite';
+import { signIn, fetchProfileById, getCurrentUser, databases, account } from '../api/appwrite';
 import { Query } from 'react-native-appwrite';
 import { APPWRITE_DATABASE_ID, COLLECTION_USERS } from '../constants/databaseConstants';
 
@@ -12,6 +12,10 @@ export default function SignIn({ navigation }: any) {
   const isValidEmail = (input: string) => /\S+@\S+\.\S+/.test(input);
 
   const handleSignIn = async () => {
+    if (!emailOrUsername || !password) {
+      Alert.alert('Error', 'Please fill in all fields');
+      return;
+    }
     setLoading(true);
     try {
       let emailToUse = emailOrUsername;
@@ -19,7 +23,7 @@ export default function SignIn({ navigation }: any) {
         const res = await databases.listDocuments(
           APPWRITE_DATABASE_ID,
           COLLECTION_USERS,
-          [Query.equal('user_name', emailOrUsername.trim())]
+          [Query.equal('user_name', emailOrUsername.trim())] // Note: changed from 'user_name' to 'username'
         );
         if (res.total === 0) {
           Alert.alert('Sign In Error', 'Username not found.');
@@ -27,28 +31,44 @@ export default function SignIn({ navigation }: any) {
           return;
         }
         emailToUse = res.documents[0].email;
+        console.log('res.documents[0]:', res.documents[0]);
         if (!emailToUse) {
           Alert.alert('Sign In Error', 'No email found for this username.');
           setLoading(false);
           return;
         }
       }
-      await signIn(emailToUse, password);
-      const user = await getCurrentUser();
-      if (!user || !user.$id) {
-        Alert.alert('Sign In Error', 'Could not retrieve user information after sign in.');
+      const user = await signIn(emailToUse, password);
+      console.log('Signed in user:', user);
+      
+      const profile = await fetchProfileById(user.userId);
+      console.log('Signed in profile:', profile);
+      
+      // Check if profile exists
+      if (!profile) {
+        // Sign out the user since they don't have a profile
+        await account.deleteSession('current');
+        Alert.alert(
+          'Profile Not Found', 
+          'Your account profile is missing. Please contact support or create a new account.',
+          [
+            { text: 'Create New Account', onPress: () => navigation.navigate('SignUp') },
+            { text: 'OK', style: 'cancel' }
+          ]
+        );
         setLoading(false);
         return;
       }
-      const profile = await fetchProfileById(user.$id);
+      
       if (profile?.role === 'driver') {
-        navigation.reset({ index: 0, routes: [{ name: 'DriverDashboard' }] });
+        navigation.reset({ index: 0, routes: [{ name: 'DriverTabs' }] });
       } else if (profile?.role === 'customer') {
-        navigation.reset({ index: 0, routes: [{ name: 'CustomerDashboard' }] });
+        navigation.reset({ index: 0, routes: [{ name: 'CustomerTabs' }] });
       } else {
         Alert.alert('Profile missing role', 'Could not determine user role.');
       }
     } catch (error: any) {
+      console.error('Sign in error:', error);
       Alert.alert('Sign In Error', error?.message || error?.response?.message || 'Unknown error');
     }
     setLoading(false);

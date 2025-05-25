@@ -6,6 +6,7 @@ import OrdersScreen from '../pages/OrdersScreen';
 import MessagesScreen from '../pages/MessagesScreen';
 import DriverProfile from '../pages/DriverProfile';
 import TruckDetails from '../pages/TruckDetails';
+import AddTruck from '../pages/AddTruck';
 // import ManageMenu from '../pages/ManageMenu';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,6 +19,7 @@ function DashboardStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DriverDashboard" component={DriverDashboard} />
       <Stack.Screen name="TruckDetails" component={TruckDetails} />
+      <Stack.Screen name="AddTruck" component={AddTruck} />
       {/* <Stack.Screen name="ManageMenu" component={ManageMenu} /> */}
       {/* <Stack.Screen name="TruckDetails" component={TruckDetails} /> */}
     </Stack.Navigator>

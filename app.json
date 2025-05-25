@@ -34,6 +34,14 @@
       "eas": {
         "projectId": "24aa1d38-f93e-4f41-bfe8-7d41ee2f9bcf"
       }
-    }
+    },
+    "plugins": [
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "The app needs access to your photos to let you upload your food truck image."
+        }
+      ]
+    ]
   }
 }

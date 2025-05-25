@@ -26,9 +26,9 @@ export default function CustomerAccount({ navigation }: any) {
 
   // Mock additional user data - replace with actual data
   const userData = {
-    name: username || (user?.name ?? 'Customer Name'),
+    name: username || (user?.user_name ?? 'Customer Name'),
     email: email || (user?.email ?? 'customer@example.com'),
-    phone: user?.phone || '(555) 123-4567', // Add phone to your database if needed
+    phone: user?.phone_number || '(555) 123-4567', // Add phone to your database if needed
     profilePicture: user?.profilePicture || null, // You can add actual image URI here
   };
 

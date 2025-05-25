@@ -1,46 +1,48 @@
-import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-  ScrollView,
-  Image,
-  Switch
-} from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { getCurrentUser, fetchProfileById, signOut } from '../api/appwrite';
 import { Ionicons } from '@expo/vector-icons';
-import { signOut } from '../api/appwrite';
 
 export default function DriverProfile({ navigation }: any) {
-  // Settings state
-  const [acceptingOrders, setAcceptingOrders] = useState(true);
-  const [pushNotifications, setPushNotifications] = useState(true);
-  const [locationSharing, setLocationSharing] = useState(true);
+  const [userProfile, setUserProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
 
-  // Mock user data - replace with actual user data
-  const userData = {
-    name: 'John Driver',
-    email: 'john.driver@example.com',
-    phone: '(555) 123-4567',
-    profilePicture: null, // You can add actual image URI here
+  useEffect(() => {
+    loadUserProfile();
+  }, []);
+
+  const loadUserProfile = async () => {
+    try {
+      const user = await getCurrentUser();
+      if (user) {
+        const profile = await fetchProfileById(user.$id);
+        setUserProfile(profile);
+      }
+    } catch (error) {
+      console.error('Error loading profile:', error);
+    } finally {
+      setLoading(false);
+    }
   };
 
-  const handleLogout = async () => {
+  const handleSignOut = async () => {
     Alert.alert(
-      'Log Out',
-      'Are you sure you want to log out?',
+      'Sign Out',
+      'Are you sure you want to sign out?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
-          text: 'Log Out',
+          text: 'Sign Out',
           style: 'destructive',
           onPress: async () => {
             try {
               await signOut();
-              navigation.reset({ index: 0, routes: [{ name: 'SignIn' }] });
+              navigation.reset({
+                index: 0,
+                routes: [{ name: 'SignIn' }],
+              });
             } catch (error) {
-              Alert.alert('Logout Error', 'Failed to log out. Please try again.');
+              Alert.alert('Error', 'Failed to sign out. Please try again.');
             }
           },
         },
@@ -48,142 +50,96 @@ export default function DriverProfile({ navigation }: any) {
     );
   };
 
-  const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Edit profile feature coming soon!');
-  };
-
-  const handleChangePassword = () => {
-    Alert.alert('Change Password', 'Change password feature coming soon!');
-  };
-
-  const handleFAQs = () => {
-    Alert.alert('FAQs', 'Frequently Asked Questions coming soon!');
-  };
-
-  const handleReportIssue = () => {
-    Alert.alert('Report Issue', 'Report issue feature coming soon!');
-  };
-
-  const handleContactSupport = () => {
-    Alert.alert('Contact Support', 'Contact support feature coming soon!');
-  };
-
-  const handleRateApp = () => {
-    Alert.alert('Rate App', 'Rate app feature coming soon!');
-  };
-
-  const renderSection = (title: string, children: React.ReactNode) => (
-    <View style={styles.section}>
-      <Text style={styles.sectionTitle}>{title}</Text>
-      {children}
-    </View>
-  );
-
-  const renderMenuItem = (
-    icon: string,
-    title: string,
-    onPress: () => void,
-    showArrow = true,
-    textColor = '#333'
-  ) => (
-    <TouchableOpacity style={styles.menuItem} onPress={onPress}>
-      <View style={styles.menuItemLeft}>
-        <Ionicons name={icon as any} size={20} color="#666" />
-        <Text style={[styles.menuItemText, { color: textColor }]}>{title}</Text>
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#FF6B6B" />
       </View>
-      {showArrow && <Ionicons name="chevron-forward" size={16} color="#999" />}
-    </TouchableOpacity>
-  );
-
-  const renderToggleItem = (
-    icon: string,
-    title: string,
-    value: boolean,
-    onValueChange: (value: boolean) => void
-  ) => (
-    <View style={styles.menuItem}>
-      <View style={styles.menuItemLeft}>
-        <Ionicons name={icon as any} size={20} color="#666" />
-        <Text style={styles.menuItemText}>{title}</Text>
-      </View>
-      <Switch
-        value={value}
-        onValueChange={onValueChange}
-        trackColor={{ false: '#E0E0E0', true: '#F28C28' }}
-        thumbColor={value ? '#fff' : '#f4f3f4'}
-      />
-    </View>
-  );
+    );
+  }
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Driver Info Section */}
-      {renderSection('Driver Info', (
-        <View>
-          <View style={styles.profileHeader}>
-            <View style={styles.profileImageContainer}>
-              {userData.profilePicture ? (
-                <Image source={{ uri: userData.profilePicture }} style={styles.profileImage} />
-              ) : (
-                <View style={styles.profileImagePlaceholder}>
-                  <Ionicons name="person" size={40} color="#999" />
-                </View>
-              )}
-            </View>
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{userData.name}</Text>
-              <Text style={styles.profileEmail}>{userData.email}</Text>
-              <Text style={styles.profilePhone}>{userData.phone}</Text>
+    <ScrollView style={styles.container}>
+      <View style={styles.header}>
+        <Text style={styles.title}>Profile</Text>
+      </View>
+
+      {/* Profile Information */}
+      <View style={styles.profileSection}>
+        <View style={styles.avatarContainer}>
+          <Ionicons name="person-circle" size={80} color="#FF6B6B" />
+        </View>
+        
+        <View style={styles.infoContainer}>
+          <View style={styles.infoRow}>
+            <Ionicons name="person-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Username</Text>
+              <Text style={styles.infoText}>{userProfile?.user_name || 'Not set'}</Text>
             </View>
           </View>
-          {renderMenuItem('create-outline', 'Edit Profile', handleEditProfile)}
-        </View>
-      ))}
 
-      {/* Notifications & Settings Section */}
-      {renderSection('Notifications & Settings', (
-        <View>
-          {renderToggleItem(
-            'checkmark-circle-outline',
-            'Accepting Orders',
-            acceptingOrders,
-            setAcceptingOrders
-          )}
-          {renderToggleItem(
-            'notifications-outline',
-            'Push Notifications',
-            pushNotifications,
-            setPushNotifications
-          )}
-          {renderToggleItem(
-            'location-outline',
-            'Location Sharing',
-            locationSharing,
-            setLocationSharing
-          )}
-          {renderMenuItem('settings-outline', 'App Settings', () => Alert.alert('App Settings', 'Coming soon!'))}
-        </View>
-      ))}
+          <View style={styles.infoRow}>
+            <Ionicons name="mail-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Email</Text>
+              <Text style={styles.infoText}>{userProfile?.email || 'Not set'}</Text>
+            </View>
+          </View>
 
-      {/* Account Actions Section */}
-      {renderSection('Account Actions', (
-        <View>
-          {renderMenuItem('key-outline', 'Change Password', handleChangePassword)}
-          {renderMenuItem('log-out-outline', 'Log Out', handleLogout, false, '#D8572A')}
-        </View>
-      ))}
+          <View style={styles.infoRow}>
+            <Ionicons name="call-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Phone Number</Text>
+              <Text style={styles.infoText}>{userProfile?.phone_number || 'Not set'}</Text>
+            </View>
+          </View>
 
-      {/* Help & Feedback Section */}
-      {renderSection('Help & Feedback', (
-        <View>
-          {renderMenuItem('help-circle-outline', 'FAQs', handleFAQs)}
-          {renderMenuItem('bug-outline', 'Report an Issue', handleReportIssue)}
-          {renderMenuItem('mail-outline', 'Contact Support', handleContactSupport)}
-          {renderMenuItem('star-outline', 'Rate the App', handleRateApp)}
+          <View style={styles.infoRow}>
+            <Ionicons name="shield-checkmark-outline" size={20} color="#666" />
+            <View style={styles.infoTextContainer}>
+              <Text style={styles.infoLabel}>Account Type</Text>
+              <Text style={styles.infoText}>Food Truck Driver</Text>
+            </View>
+          </View>
         </View>
-      ))}
+      </View>
 
-      <View style={{ height: 40 }} />
+      {/* Action Buttons */}
+      <View style={styles.actionsSection}>
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('EditProfile', { profile: userProfile })}
+        >
+          <Ionicons name="create-outline" size={20} color="#FF6B6B" />
+          <Text style={styles.actionButtonText}>Edit Profile</Text>
+          <Ionicons name="chevron-forward" size={20} color="#999" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('ChangePassword')}
+        >
+          <Ionicons name="key-outline" size={20} color="#FF6B6B" />
+          <Text style={styles.actionButtonText}>Change Password</Text>
+          <Ionicons name="chevron-forward" size={20} color="#999" />
+        </TouchableOpacity>
+
+        <TouchableOpacity 
+          style={styles.actionButton}
+          onPress={() => navigation.navigate('Support')}
+        >
+          <Ionicons name="help-circle-outline" size={20} color="#FF6B6B" />
+          <Text style={styles.actionButtonText}>Help & Support</Text>
+          <Ionicons name="chevron-forward" size={20} color="#999" />
+        </TouchableOpacity>
+      </View>
+
+      {/* Sign Out Button */}
+      <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+        <Ionicons name="log-out-outline" size={20} color="#fff" />
+        <Text style={styles.signOutText}>Sign Out</Text>
+      </TouchableOpacity>
     </ScrollView>
   );
 }
@@ -193,83 +149,91 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#faf8f3',
   },
-  section: {
-    backgroundColor: '#fff',
-    marginHorizontal: 16,
-    marginTop: 16,
-    borderRadius: 12,
-    paddingVertical: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    color: '#333',
-    paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 12,
-  },
-  profileHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 16,
-    paddingBottom: 16,
-  },
-  profileImageContainer: {
-    marginRight: 16,
-  },
-  profileImage: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  profileImagePlaceholder: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    backgroundColor: '#f0f0f0',
+  loadingContainer: {
+    flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
   },
-  profileInfo: {
-    flex: 1,
+  header: {
+    paddingTop: 50,
+    paddingHorizontal: 20,
+    paddingBottom: 20,
   },
-  profileName: {
-    fontSize: 22,
+  title: {
+    fontSize: 32,
     fontWeight: 'bold',
     color: '#333',
-    marginBottom: 4,
   },
-  profileEmail: {
-    fontSize: 16,
-    color: '#666',
-    marginBottom: 2,
+  profileSection: {
+    backgroundColor: '#fff',
+    marginHorizontal: 20,
+    borderRadius: 16,
+    padding: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
   },
-  profilePhone: {
-    fontSize: 16,
-    color: '#666',
+  avatarContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
   },
-  menuItem: {
+  infoContainer: {
+    marginTop: 10,
+  },
+  infoRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    borderBottomWidth: 0.5,
-    borderBottomColor: '#f0f0f0',
+    marginBottom: 16,
   },
-  menuItemLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+  infoTextContainer: {
+    marginLeft: 12,
     flex: 1,
   },
-  menuItemText: {
+  infoLabel: {
+    fontSize: 12,
+    color: '#666',
+  },
+  infoText: {
     fontSize: 16,
-    marginLeft: 12,
     color: '#333',
+    fontWeight: '500',
+    marginTop: 2,
+  },
+  actionsSection: {
+    marginTop: 20,
+    paddingHorizontal: 20,
+  },
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  actionButtonText: {
+    flex: 1,
+    marginLeft: 12,
+    fontSize: 16,
+    color: '#333',
+  },
+  signOutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#FF6B6B',
+    marginHorizontal: 20,
+    marginTop: 20,
+    marginBottom: 40,
+    padding: 16,
+    borderRadius: 12,
+  },
+  signOutText: {
+    color: '#fff',
+    fontSize: 16,
+    fontWeight: 'bold',
+    marginLeft: 8,
   },
 });
