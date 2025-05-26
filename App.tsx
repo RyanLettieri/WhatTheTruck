@@ -8,6 +8,7 @@ import { UserProvider } from './src/contexts/UserContext';
 import CustomerTabs from './src/navigation/CustomerTabs';
 import SignIn from './src/pages/SignIn';
 import SignUp from './src/pages/SignUp';
+import SupportScreen from './src/pages/SupportScreen';
 import DriverTabs from './src/navigation/DriverTabs';
 
 const Stack = createNativeStackNavigator();
@@ -70,6 +71,7 @@ export default function App() {
         <Stack.Screen name="SignUp" component={SignUp} />
         <Stack.Screen name="CustomerTabs" component={CustomerTabs} />
         <Stack.Screen name="DriverTabs" component={DriverTabs} />
+        <Stack.Screen name="Support" component={SupportScreen} options={{ headerShown: false }} />
       </Stack.Navigator>
     </NavigationContainer>
   );

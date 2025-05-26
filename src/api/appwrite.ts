@@ -316,3 +316,43 @@ export async function updateMenu(
     return null;
   }
 }
+
+export async function deleteMenu(menuId: string) {
+  try {
+    // First, delete all menu items in this menu
+    const menuItems = await fetchMenuItemsByMenuId(menuId);
+    for (const item of menuItems) {
+      await databases.deleteDocument(
+        APPWRITE_DATABASE_ID,
+        COLLECTION_MENU_ITEMS,
+        item.id
+      );
+    }
+    
+    // Then delete the menu itself
+    await databases.deleteDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENUS,
+      menuId
+    );
+    
+    return true;
+  } catch (error) {
+    console.error('Error deleting menu:', error);
+    return false;
+  }
+}
+
+export async function deleteMenuItem(menuItemId: string) {
+  try {
+    await databases.deleteDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENU_ITEMS,
+      menuItemId
+    );
+    return true;
+  } catch (error) {
+    console.error('Error deleting menu item:', error);
+    return false;
+  }
+}
