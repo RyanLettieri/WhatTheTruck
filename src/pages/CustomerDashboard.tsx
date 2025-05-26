@@ -9,9 +9,12 @@ import {
   ActivityIndicator,
   SafeAreaView,
   StatusBar,
+  ScrollView,
+  Alert,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { fetchTrucks } from '../api/appwrite';
+import { fetchTrucks, fetchUserFavorites, removeFavorite, getCurrentUser } from '../api/appwrite';
+import { FavoriteTruckCard } from '../components/FavoriteTruckCard';
 
 const CUISINE_FILTERS = [
   { name: 'Mexican', icon: '🌮' },
@@ -30,16 +33,61 @@ const NEARBY_TRUCKS = [
 
 export default function CustomerDashboard({ navigation }: any) {
   const [trucks, setTrucks] = useState<any[]>([]);
+  const [favorites, setFavorites] = useState<any[]>([]);
   const [search, setSearch] = useState('');
   const [selectedCuisine, setSelectedCuisine] = useState('');
   const [loading, setLoading] = useState(true);
+  const [userId, setUserId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchTrucks()
-      .then(setTrucks)
-      .catch(() => setTrucks([]))
-      .finally(() => setLoading(false));
+    loadData();
   }, []);
+
+  const loadData = async () => {
+    try {
+      // Get current user
+      const user = await getCurrentUser();
+      if (user) {
+        setUserId(user.$id);
+        
+        // Load favorites
+        const userFavorites = await fetchUserFavorites(user.$id);
+        setFavorites(userFavorites);
+      }
+      
+      // Load all trucks
+      const allTrucks = await fetchTrucks();
+      setTrucks(allTrucks);
+    } catch (error) {
+      console.error('Error loading data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRemoveFavorite = async (truckId: string) => {
+    if (!userId) return;
+    
+    Alert.alert(
+      'Remove Favorite',
+      'Are you sure you want to remove this truck from your favorites?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Remove',
+          style: 'destructive',
+          onPress: async () => {
+            const success = await removeFavorite(userId, truckId);
+            if (success) {
+              setFavorites(favorites.filter(fav => fav.truck_id !== truckId));
+            } else {
+              Alert.alert('Error', 'Failed to remove favorite');
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const filteredTrucks = trucks.filter(truck => {
     const matchesName = truck.truck_name?.toLowerCase().includes(search.toLowerCase());
@@ -72,7 +120,7 @@ export default function CustomerDashboard({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F9F9F9" />
 
-      <View style={styles.container}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
@@ -114,6 +162,34 @@ export default function CustomerDashboard({ navigation }: any) {
           contentContainerStyle={styles.cuisineFilterContainer}
         />
 
+        {/* Your Favorites Section */}
+        {favorites.length > 0 && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Your Favorites</Text>
+              <TouchableOpacity onPress={() => navigation.navigate('Favorites')}>
+                <Text style={styles.seeAllText}>See all</Text>
+              </TouchableOpacity>
+            </View>
+
+            <FlatList
+              data={favorites.slice(0, 5)}
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              keyExtractor={item => item.$id}
+              renderItem={({ item }) => (
+                <FavoriteTruckCard
+                  truck={item.truck}
+                  onPress={() => navigation.navigate('TruckDetails', { truck: item.truck })}
+                  onRemoveFavorite={() => handleRemoveFavorite(item.truck_id)}
+                />
+              )
+              }
+              style={styles.favoritesContainer}
+            />
+          </>
+        )}
+
         {/* Feature Buttons */}
         <View style={styles.featureButtonsRow}>
           {renderFeatureButton({
@@ -138,6 +214,7 @@ export default function CustomerDashboard({ navigation }: any) {
 
         <FlatList
           data={NEARBY_TRUCKS}
+          scrollEnabled={false}
           keyExtractor={item => item.id}
           renderItem={({ item }) => (
             <TouchableOpacity
@@ -160,7 +237,7 @@ export default function CustomerDashboard({ navigation }: any) {
           )}
           style={styles.trucksList}
         />
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
@@ -224,4 +301,8 @@ const styles = StyleSheet.create({
   truckMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
   truckDistance: { color: '#888', fontSize: 12, marginLeft: 4 },
   truckRating: { color: '#888', fontSize: 12, marginLeft: 4 },
+  trucksList: { marginBottom: 20 },
+  favoritesContainer: {
+    marginBottom: 16,
+  },
 });

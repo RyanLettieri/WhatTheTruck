@@ -123,16 +123,26 @@ export async function updateProfileById(userId: string, updates: any) {
 }
 
 // Fetch truck by ID
-export async function fetchTruckById(id: string) {
+export async function fetchTruckById(truckId: string) {
   try {
-    const res = await databases.getDocument(
+    // Validate truckId
+    if (!truckId || typeof truckId !== 'string' || truckId.length > 36) {
+      console.error('Invalid truckId provided:', truckId);
+      return null;
+    }
+    
+    // Remove any whitespace
+    const cleanTruckId = truckId.trim();
+    
+    const response = await databases.getDocument(
       APPWRITE_DATABASE_ID,
       COLLECTION_TRUCKS,
-      id
+      cleanTruckId
     );
-    return res;
+    
+    return response;
   } catch (error) {
-    console.log('fetchTruckById error:', error);
+    console.error('fetchTruckById error:', error);
     return null;
   }
 }
@@ -353,6 +363,114 @@ export async function deleteMenuItem(menuItemId: string) {
     return true;
   } catch (error) {
     console.error('Error deleting menu item:', error);
+    return false;
+  }
+}
+
+export async function fetchUserFavorites(userId: string) {
+  try {
+    const response = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_FAVORITES,
+      [
+        Query.equal('user_id', userId),
+        Query.orderDesc('created_at')
+      ]
+    );
+    
+    console.log('Favorites response:', response);
+    
+    if (!response.documents || response.documents.length === 0) {
+      return [];
+    }
+    
+    // Fetch the truck details for each favorite
+    const favoritesWithTrucks = await Promise.all(
+      response.documents.map(async (favorite) => {
+        try {
+          // Validate truck_id before fetching
+          if (!favorite.truck_id.id || favorite.truck_id.id.length > 36) {
+            console.error('Invalid truck_id.id:', favorite.truck_id.id);
+            return null;
+          }
+          
+          const truck = await fetchTruckById(favorite.truck_id.id);
+          return {
+            ...favorite,
+            truck: truck
+          };
+        } catch (error) {
+          console.error('Error fetching truck for favorite:', error);
+          return null;
+        }
+      })
+    );
+    
+    // Filter out null values (failed fetches)
+    return favoritesWithTrucks.filter(fav => fav !== null && fav.truck !== null);
+  } catch (error) {
+    console.error('Error fetching user favorites:', error);
+    return [];
+  }
+}
+
+export async function addFavorite(userId: string, truckId: string) {
+  try {
+    // Check if already favorited
+    const existing = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_FAVORITES,
+      [
+        Query.equal('user_id', userId),
+        Query.equal('truck_id', truckId)
+      ]
+    );
+    
+    if (existing.documents.length > 0) {
+      return existing.documents[0];
+    }
+    
+    // Add new favorite
+    const favorite = await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_FAVORITES,
+      ID.unique(),
+      {
+        user_id: userId,
+        truck_id: truckId
+      }
+    );
+    
+    return favorite;
+  } catch (error) {
+    console.error('Error adding favorite:', error);
+    return null;
+  }
+}
+
+export async function removeFavorite(userId: string, truckId: string) {
+  try {
+    const favorites = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_FAVORITES,
+      [
+        Query.equal('user_id', userId),
+        Query.equal('truck_id', truckId)
+      ]
+    );
+    
+    if (favorites.documents.length > 0) {
+      await databases.deleteDocument(
+        APPWRITE_DATABASE_ID,
+        COLLECTION_FAVORITES,
+        favorites.documents[0].$id
+      );
+      return true;
+    }
+    
+    return false;
+  } catch (error) {
+    console.error('Error removing favorite:', error);
     return false;
   }
 }
