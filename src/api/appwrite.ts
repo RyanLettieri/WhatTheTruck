@@ -627,3 +627,44 @@ export async function fetchOrderById(orderId: string) {
     return null;
   }
 }
+
+// Add this function to fetch orders for a specific truck
+
+export async function fetchTruckOrders(truckId: string) {
+  try {
+    const response = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      [
+        Query.equal('truck_id', truckId),
+        Query.orderDesc('created_at'),
+        Query.limit(100)
+      ]
+    );
+    
+    return response.documents;
+  } catch (error) {
+    console.error('Error fetching truck orders:', error);
+    return [];
+  }
+}
+
+// Add this function to update order status
+
+export async function updateOrderStatus(orderId: string, status: string) {
+  try {
+    const order = await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      orderId,
+      {
+        status: status
+      }
+    );
+    
+    return order;
+  } catch (error) {
+    console.error('Error updating order status:', error);
+    return null;
+  }
+}
