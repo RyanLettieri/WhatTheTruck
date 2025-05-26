@@ -3,8 +3,11 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import CustomerDashboard from '../pages/CustomerDashboard';
 import MapScreen from '../pages/MapScreen';
-import OrdersScreen from '../pages/MapScreen';
+import OrdersScreen from '../pages/OrdersScreen';
 import CustomerAccount from '../pages/CustomerAccount';
+import CustomerTruckDetails from '../pages/CustomerTruckDetails';
+import Checkout from '../pages/Checkout';
+import OrderConfirmation from '../pages/OrderConfirmation';
 import { Ionicons } from '@expo/vector-icons';
 
 const Tab = createBottomTabNavigator();
@@ -16,6 +19,9 @@ function DashboardStack() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="CustomerDashboard" component={CustomerDashboard} />
       <Stack.Screen name="MapScreen" component={MapScreen} />
+      <Stack.Screen name="CustomerTruckDetails" component={CustomerTruckDetails} />
+      <Stack.Screen name="Checkout" component={Checkout} />
+      <Stack.Screen name="OrderConfirmation" component={OrderConfirmation} />
     </Stack.Navigator>
   );
 }

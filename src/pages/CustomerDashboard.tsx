@@ -11,6 +11,7 @@ import {
   StatusBar,
   ScrollView,
   Alert,
+  RefreshControl,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { fetchTrucks, fetchUserFavorites, removeFavorite, getCurrentUser } from '../api/appwrite';
@@ -25,12 +26,6 @@ const CUISINE_FILTERS = [
   { name: 'BBQ', icon: '🍖' },
 ];
 
-const NEARBY_TRUCKS = [
-  { id: '1', name: 'Tasty Tacos', distance: '0.5 mi', icon: '🌮', rating: 4.5 },
-  { id: '2', name: 'BBQ Express', distance: '0.5 mi', icon: '🍖', rating: 4.6 },
-  { id: '3', name: 'Noodle Master', distance: '1.2 mi', icon: '🍜', rating: 4.9 },
-];
-
 export default function CustomerDashboard({ navigation }: any) {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [favorites, setFavorites] = useState<any[]>([]);
@@ -38,6 +33,9 @@ export default function CustomerDashboard({ navigation }: any) {
   const [selectedCuisine, setSelectedCuisine] = useState('');
   const [loading, setLoading] = useState(true);
   const [userId, setUserId] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [lastRefreshTime, setLastRefreshTime] = useState(0);
+  const REFRESH_COOLDOWN = 30000; // 30 seconds between refreshes
 
   useEffect(() => {
     loadData();
@@ -108,6 +106,31 @@ export default function CustomerDashboard({ navigation }: any) {
     </TouchableOpacity>
   );
 
+  const onRefresh = async () => {
+    // Check if we're within the cooldown period
+    const now = Date.now();
+    if (now - lastRefreshTime < REFRESH_COOLDOWN) {
+      const secondsLeft = Math.ceil((REFRESH_COOLDOWN - (now - lastRefreshTime)) / 1000);
+      Alert.alert(
+        "Please wait",
+        `You can refresh again in ${secondsLeft} seconds.`
+      );
+      return;
+    }
+    
+    setRefreshing(true);
+    setLastRefreshTime(now);
+    
+    try {
+      await loadData(); // Your existing data loading function
+    } catch (error) {
+      console.error('Error refreshing data:', error);
+      Alert.alert('Error', 'Failed to refresh data');
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -120,7 +143,18 @@ export default function CustomerDashboard({ navigation }: any) {
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="dark-content" backgroundColor="#F9F9F9" />
 
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            colors={["#F28C28"]}
+            tintColor="#F28C28"
+          />
+        }
+      >
         {/* Search Bar */}
         <View style={styles.searchContainer}>
           <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
@@ -180,7 +214,7 @@ export default function CustomerDashboard({ navigation }: any) {
               renderItem={({ item }) => (
                 <FavoriteTruckCard
                   truck={item.truck}
-                  onPress={() => navigation.navigate('TruckDetails', { truck: item.truck })}
+                  onPress={() => navigation.navigate('CustomerTruckDetails', { truck: item.truck })}
                   onRemoveFavorite={() => handleRemoveFavorite(item.truck_id)}
                 />
               )
@@ -207,40 +241,73 @@ export default function CustomerDashboard({ navigation }: any) {
         {/* Nearby Trucks Section */}
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Nearby Trucks</Text>
-          <TouchableOpacity onPress={() => console.log('See all nearby trucks')}>
+          <TouchableOpacity onPress={() => navigation.navigate('MapScreen')}>
             <Text style={styles.seeAllText}>See all</Text>
           </TouchableOpacity>
         </View>
 
         <FlatList
-          data={NEARBY_TRUCKS}
+          data={filteredTrucks.slice(0, 3)} // Show top 3 filtered trucks
           scrollEnabled={false}
-          keyExtractor={item => item.id}
+          keyExtractor={item => item.$id}
           renderItem={({ item }) => (
             <TouchableOpacity
               style={styles.truckCard}
-              onPress={() => navigation.navigate('TruckDetails', { truckId: item.id })}
+              onPress={() => navigation.navigate('CustomerTruckDetails', { truck: item })}
             >
               <View style={styles.truckIconContainer}>
-                <Text style={styles.truckIcon}>{item.icon}</Text>
+                <Text style={styles.truckIcon}>
+                  {item.cuisines && item.cuisines.length > 0 
+                    ? getCuisineEmoji(item.cuisines[0]) 
+                    : '🚚'}
+                </Text>
               </View>
               <View style={styles.truckInfo}>
-                <Text style={styles.truckName}>{item.name}</Text>
+                <Text style={styles.truckName}>{item.truck_name}</Text>
                 <View style={styles.truckMetaRow}>
                   <Ionicons name="location-outline" size={12} color="#888" />
-                  <Text style={styles.truckDistance}>{item.distance} away</Text>
-                  <Ionicons name="star" size={12} color="#F9AD44" style={{ marginLeft: 8 }} />
-                  <Text style={styles.truckRating}>{item.rating}</Text>
+                  <Text style={styles.truckDistance}>Near you</Text>
+                  <View style={[
+                    styles.statusDot, 
+                    item.available ? styles.available : styles.unavailable
+                  ]} />
+                  <Text style={styles.statusText}>
+                    {item.available ? 'Open' : 'Closed'}
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
           )}
           style={styles.trucksList}
+          ListEmptyComponent={
+            <Text style={styles.emptyListText}>No trucks found</Text>
+          }
         />
       </ScrollView>
     </SafeAreaView>
   );
 }
+
+// Helper function to get emoji based on cuisine
+const getCuisineEmoji = (cuisine: string) => {
+  const cuisineMap: {[key: string]: string} = {
+    'mexican': '🌮',
+    'asian': '🍜',
+    'american': '🍔',
+    'italian': '🍕',
+    'dessert': '🍩',
+    'bbq': '🍖',
+    'seafood': '🦞',
+    'indian': '🍛',
+    'breakfast': '🥞',
+    'mediterranean': '🥙',
+    'vegan': '🥗',
+    'japanese': '🍱'
+  };
+  
+  const lowerCuisine = cuisine.toLowerCase();
+  return cuisineMap[lowerCuisine] || '🚚';
+};
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: '#F9F9F9' },
@@ -305,4 +372,27 @@ const styles = StyleSheet.create({
   favoritesContainer: {
     marginBottom: 16,
   },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    marginLeft: 4,
+  },
+  available: {
+    backgroundColor: '#4CAF50',
+  },
+  unavailable: {
+    backgroundColor: '#F44336',
+  },
+  statusText: {
+    color: '#888',
+    fontSize: 12,
+    marginLeft: 4,
+  },
+  emptyListText: {
+    textAlign: 'center',
+    color: '#888',
+    fontSize: 14,
+    paddingVertical: 20,
+  }
 });

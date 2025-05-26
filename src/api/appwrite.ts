@@ -6,7 +6,8 @@ import {
   COLLECTION_FAVORITES,
   COLLECTION_MENUS,
   COLLECTION_MENU_ITEMS,
-  COLLECTION_REVIEWS
+  COLLECTION_REVIEWS,
+  COLLECTION_ORDERS
 } from '../constants/databaseConstants';
 
 // Initialize Appwrite client
@@ -125,24 +126,16 @@ export async function updateProfileById(userId: string, updates: any) {
 // Fetch truck by ID
 export async function fetchTruckById(truckId: string) {
   try {
-    // Validate truckId
-    if (!truckId || typeof truckId !== 'string' || truckId.length > 36) {
-      console.error('Invalid truckId provided:', truckId);
-      return null;
-    }
-    
-    // Remove any whitespace
-    const cleanTruckId = truckId.trim();
-    
+    // Add nocache parameter to force fresh data
     const response = await databases.getDocument(
       APPWRITE_DATABASE_ID,
       COLLECTION_TRUCKS,
-      cleanTruckId
+      truckId
     );
     
     return response;
   } catch (error) {
-    console.error('fetchTruckById error:', error);
+    console.error('Error fetching truck:', error);
     return null;
   }
 }
@@ -414,6 +407,25 @@ export async function fetchUserFavorites(userId: string) {
   }
 }
 
+export async function updateTruckLocation(truckId: string, latitude: number, longitude: number) {
+  try {
+    const updated = await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_TRUCKS,
+      truckId,
+      {
+        latitude,
+        longitude,
+        location_updated_at: new Date().toISOString()
+      }
+    );
+    return updated;
+  } catch (error) {
+    console.error('Error updating truck location:', error);
+    return null;
+  }
+}
+
 export async function addFavorite(userId: string, truckId: string) {
   try {
     // Check if already favorited
@@ -472,5 +484,146 @@ export async function removeFavorite(userId: string, truckId: string) {
   } catch (error) {
     console.error('Error removing favorite:', error);
     return false;
+  }
+}
+
+// Fetch truck menu items (handles the menus → menu_items relationship)
+export async function fetchTruckMenu(truckId: string) {
+  try {
+    // First, get all menus for this truck
+    const menus = await fetchMenusByTruckId(truckId);
+    
+    if (!menus || menus.length === 0) {
+      return []; // No menus found for this truck
+    }
+    
+    // Get all menu IDs
+    const menuIds = menus.map(menu => menu.id);
+    
+    // Fetch all menu items for these menus
+    let allMenuItems = [];
+    
+    // Since we can't query for multiple menu_ids at once with the current Appwrite setup,
+    // we need to fetch items for each menu separately and combine them
+    for (const menuId of menuIds) {
+      const menuItems = await fetchMenuItemsByMenuId(menuId);
+      
+      // Add menu details to each item for better organization
+      const menuDetails = menus.find(m => m.id === menuId);
+      const itemsWithMenuInfo = menuItems.map(item => ({
+        ...item,
+        menu_name: menuDetails?.name || 'Unknown Menu',
+        category: menuDetails?.name || 'Unknown Category', // Use menu name as category for grouping
+        truck_id: truckId // Add truck_id for convenience
+      }));
+      
+      allMenuItems = [...allMenuItems, ...itemsWithMenuInfo];
+    }
+    
+    return allMenuItems;
+  } catch (error) {
+    console.error('Error fetching menu items for truck:', error);
+    return [];
+  }
+}
+
+// Submit order
+export async function submitOrder(orderData: any) {
+  try {
+    // Generate a unique ID for the order
+    const orderId = ID.unique();
+    
+    // Debug - log what we're trying to create
+    console.log('Creating order with data structure:', {
+      id: orderId,
+      customer_id: orderData.user_id,
+      truck_id: orderData.truck_id,
+      menu_items: orderData.items,
+      created_at: new Date().toISOString(),
+      total_cost: orderData.total_price,
+      status: orderData.status || 'processing',
+      note: orderData.note || '',
+    });
+    
+    // Create order with fields that match the schema exactly
+    const order = await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      orderId,
+      {
+        // Required fields (match the schema exactly):
+        id: orderId,                                  // String (Required)
+        customer_id: orderData.user_id,               // Relationship (Required)
+        truck_id: orderData.truck_id,                 // Relationship (Required)
+        menu_items: orderData.items,                  // Relationship (Required)
+        created_at: new Date().toISOString(),         // Datetime (Required)
+        total_cost: parseFloat(orderData.total_price),// Double (Required)
+        status: orderData.status || 'processing',     // Enum (Required)
+        
+        // Optional fields:
+        note: orderData.note || '',                   // String (Optional)
+      }
+    );
+    
+    return order;
+  } catch (error) {
+    // Enhanced error logging
+    console.error('Error submitting order:', error);
+    if (error.response) {
+      console.error('Server response:', error.response);
+    }
+    throw error;
+  }
+}
+
+// Get order details
+export async function getOrderById(orderId: string) {
+  try {
+    const order = await databases.getDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      orderId
+    );
+    
+    return order;
+  } catch (error) {
+    console.error('Error getting order:', error);
+    return null;
+  }
+}
+
+// Add these functions to fetch user orders
+
+export async function fetchUserOrders(userId: string) {
+  try {
+    const response = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      [
+        Query.equal('customer_id', userId),
+        Query.orderDesc('created_at'),
+        Query.limit(100)
+      ]
+    );
+    
+    return response.documents;
+  } catch (error) {
+    console.error('Error fetching user orders:', error);
+    return [];
+  }
+}
+
+export async function fetchOrderById(orderId: string) {
+  try {
+    const response = await databases.getDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      orderId
+    );
+    
+    return response;
+  } catch (error) {
+    console.error('Error fetching order details:', error);
+    return null;
   }
 }
