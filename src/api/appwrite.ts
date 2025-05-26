@@ -151,17 +151,33 @@ export async function updateTruckAvailability(truckId: string, available: boolea
   }
 }
 
-// Fetch menu items for a truck
-export async function fetchMenuItemsByTruckId(truckId: string) {
+// Fetch menus for a specific truck
+export async function fetchMenusByTruckId(truckId: string) {
   try {
     const res = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
-      COLLECTION_MENU_ITEMS,
+      COLLECTION_MENUS,
       [Query.equal('truck_id', truckId)]
     );
     return res.documents;
   } catch (error) {
-    console.log('fetchMenuItemsByTruckId error:', error);
+    console.error('Error fetching menus by truck ID:', error);
+    return [];
+  }
+}
+
+// Fetch menu items for a specific menu
+// This replaces/corrects the previous fetchMenuItemsByTruckId logic
+export async function fetchMenuItemsByMenuId(menuId: string) {
+  try {
+    const res = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENU_ITEMS,
+      [Query.equal('menu_id', menuId)] // Correctly query by menu_id
+    );
+    return res.documents;
+  } catch (error) {
+    console.error('Error fetching menu items by menu ID:', error);
     return [];
   }
 }
@@ -201,5 +217,102 @@ export async function createUserProfile(userId: string, data: {
   } catch (error) {
     console.log('createUserProfile error:', error);
     throw error;
+  }
+}
+
+export async function createMenu(truckId: string, name: string, imageUrl?: string) {
+  try {
+    const newMenuId = ID.unique(); // Generate a unique ID
+    const menu = await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENUS,
+      newMenuId, // Use the generated ID as the document's unique ID ($id)
+      {
+        id: newMenuId, // Provide the 'id' attribute in the data payload
+        truck_id: truckId,
+        name,
+        image_url: imageUrl,
+        created_at: new Date().toISOString(), // Consistent with addTruck and ensures string format
+      }
+    );
+    return menu;
+  } catch (error) {
+    console.error('Error creating menu:', error);
+    return null;
+  }
+}
+
+export async function createMenuItem(
+  menuId: string, 
+  name: string, 
+  price: number, 
+  description?: string,
+  imageUrl?: string
+) {
+  try {
+    const newMenuItemId = ID.unique();
+    const menuItem = await databases.createDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENU_ITEMS,
+      newMenuItemId, // Use generated ID for the document $id
+      {
+        id: newMenuItemId, // Ensure 'id' attribute is populated if it's required in your schema
+        menu_id: menuId,
+        name,
+        price,
+        description,
+        image_url: imageUrl,
+        created_at: new Date().toISOString(), // Use toISOString for consistency
+      }
+    );
+    return menuItem;
+  } catch (error) {
+    console.error('Error creating menu item:', error);
+    return null;
+  }
+}
+
+export async function updateMenuItem(
+  itemId: string,
+  updates: {
+    name?: string;
+    price?: number;
+    description?: string;
+    image_url?: string;
+  }
+) {
+  try {
+    const menuItem = await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENU_ITEMS,
+      itemId,
+      updates
+    );
+    return menuItem;
+  } catch (error) {
+    console.error('Error updating menu item:', error);
+    return null;
+  }
+}
+
+// New function to update a menu
+export async function updateMenu(
+  menuId: string,
+  updates: {
+    name?: string;
+    image_url?: string;
+  }
+) {
+  try {
+    const menu = await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_MENUS,
+      menuId,
+      updates
+    );
+    return menu;
+  } catch (error) {
+    console.error('Error updating menu:', error);
+    return null;
   }
 }

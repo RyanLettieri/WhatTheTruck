@@ -1,29 +1,37 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, FlatList, TouchableOpacity, StyleSheet, ActivityIndicator } from 'react-native';
+import {
+  View,
+  Text,
+  TextInput,
+  FlatList,
+  TouchableOpacity,
+  StyleSheet,
+  ActivityIndicator,
+  SafeAreaView,
+  StatusBar,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { fetchTrucks } from '../api/appwrite';
-import { CUISINE_OPTIONS } from '../constants/cuisines';
-import HomeButton from '../components/HomeButton';
-import AccountButton from '../components/AccountButton';
+
+const CUISINE_FILTERS = [
+  { name: 'Mexican', icon: '🌮' },
+  { name: 'Asian', icon: '🍜' },
+  { name: 'American', icon: '🍔' },
+  { name: 'Italian', icon: '🍕' },
+  { name: 'Dessert', icon: '🍩' },
+  { name: 'BBQ', icon: '🍖' },
+];
 
 const NEARBY_TRUCKS = [
-  { id: '1', name: 'Tasty Tacos', distance: '0.5 mi', icon: '🚚' },
-  { id: '2', name: 'BBQ Express', distance: '0.5 mi', icon: '🚚' },
-];
-
-const FAVORITES = [
-  { id: '3', name: 'Pizza Wagon', icon: '🍕' },
-  { id: '4', name: 'Curry in a Hurry', icon: '🍛' },
-];
-
-const PAST_ORDERS = [
-  { id: '5', name: 'The Bun Bus', icon: '🚐' },
-  { id: '6', name: 'Sushi Mobile', icon: '🚎' },
+  { id: '1', name: 'Tasty Tacos', distance: '0.5 mi', icon: '🌮', rating: 4.5 },
+  { id: '2', name: 'BBQ Express', distance: '0.5 mi', icon: '🍖', rating: 4.6 },
+  { id: '3', name: 'Noodle Master', distance: '1.2 mi', icon: '🍜', rating: 4.9 },
 ];
 
 export default function CustomerDashboard({ navigation }: any) {
   const [trucks, setTrucks] = useState<any[]>([]);
   const [search, setSearch] = useState('');
-  const [foodType, setFoodType] = useState('all');
+  const [selectedCuisine, setSelectedCuisine] = useState('');
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -34,173 +42,186 @@ export default function CustomerDashboard({ navigation }: any) {
   }, []);
 
   const filteredTrucks = trucks.filter(truck => {
-    const matchesName = truck.name?.toLowerCase().includes(search.toLowerCase());
-    const matchesType =
-      foodType === 'all' ||
+    const matchesName = truck.truck_name?.toLowerCase().includes(search.toLowerCase());
+    const matchesCuisine =
+      selectedCuisine === '' ||
       (truck.cuisines &&
         Array.isArray(truck.cuisines) &&
-        truck.cuisines.map((c: string) => c.toLowerCase()).includes(foodType));
-    return matchesName && matchesType;
+        truck.cuisines.some((c: string) => c.toLowerCase() === selectedCuisine.toLowerCase()));
+    return matchesName && matchesCuisine;
   });
 
-  if (loading) return <ActivityIndicator />;
+  const renderFeatureButton = ({ icon, title, onPress }) => (
+    <TouchableOpacity style={styles.featureButton} onPress={onPress}>
+      <View style={styles.featureIconContainer}>
+        <Ionicons name={icon} size={24} color="#4A89F3" />
+      </View>
+      <Text style={styles.featureText}>{title}</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#F28C28" />
+      </View>
+    );
+  }
 
   return (
-    <View style={styles.container}>
-      <View style={styles.searchContainer}>
-        <TextInput
-          value={search}
-          onChangeText={setSearch}
-          placeholder="Search by truck name..."
-          style={styles.searchInput}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="dark-content" backgroundColor="#F9F9F9" />
+
+      <View style={styles.container}>
+        {/* Search Bar */}
+        <View style={styles.searchContainer}>
+          <Ionicons name="search" size={20} color="#8E8E93" style={styles.searchIcon} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search by truck name, food type..."
+            placeholderTextColor="#8E8E93"
+            style={styles.searchInput}
+            returnKeyType="search"
+          />
+        </View>
+
+        {/* Cuisine Filter */}
+        <FlatList
+          data={CUISINE_FILTERS}
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={[
+                styles.cuisineButton,
+                selectedCuisine === item.name ? styles.cuisineButtonActive : null,
+              ]}
+              onPress={() => setSelectedCuisine(selectedCuisine === item.name ? '' : item.name)}
+            >
+              <Text style={styles.cuisineIcon}>{item.icon}</Text>
+              <Text
+                style={[
+                  styles.cuisineText,
+                  selectedCuisine === item.name ? styles.cuisineTextActive : null,
+                ]}
+              >
+                {item.name}
+              </Text>
+            </TouchableOpacity>
+          )}
+          keyExtractor={item => item.name}
+          contentContainerStyle={styles.cuisineFilterContainer}
         />
-        <TouchableOpacity
-          style={styles.settingsButton}
-          onPress={() => navigation.navigate('Account')}
-        >
-          <Text style={{ fontSize: 20 }}>⚙️</Text>
-        </TouchableOpacity>
-      </View>
-      <FlatList
-        data={CUISINE_OPTIONS}
-        horizontal
-        renderItem={({ item }) => (
-          <TouchableOpacity
-            style={[
-              styles.filterButton,
-              foodType === item && styles.filterButtonActive,
-            ]}
-            onPress={() => setFoodType(item)}
-          >
-            <Text>{item.charAt(0).toUpperCase() + item.slice(1)}</Text>
+
+        {/* Feature Buttons */}
+        <View style={styles.featureButtonsRow}>
+          {renderFeatureButton({
+            icon: 'navigate-outline',
+            title: 'Find Nearby',
+            onPress: () => navigation.navigate('MapScreen'),
+          })}
+          {renderFeatureButton({
+            icon: 'star-outline',
+            title: 'Top Rated',
+            onPress: () => console.log('Top rated pressed'),
+          })}
+        </View>
+
+        {/* Nearby Trucks Section */}
+        <View style={styles.sectionHeader}>
+          <Text style={styles.sectionTitle}>Nearby Trucks</Text>
+          <TouchableOpacity onPress={() => console.log('See all nearby trucks')}>
+            <Text style={styles.seeAllText}>See all</Text>
           </TouchableOpacity>
-        )}
-        keyExtractor={item => item}
-        style={{ marginVertical: 8 }}
-      />
-      <Text style={styles.sectionHeader}>Nearby Trucks</Text>
-      <FlatList
-        data={NEARBY_TRUCKS}
-        keyExtractor={item => item.id}
-        renderItem={({ item }) => (
-          <View style={styles.truckCard}>
-            <Text style={styles.truckIcon}>{item.icon}</Text>
-            <View>
-              <Text style={styles.truckName}>{item.name}</Text>
-              <Text style={styles.truckDistance}>{item.distance} away</Text>
-            </View>
-          </View>
-        )}
-      />
-      <Text style={styles.sectionHeader}>Favorites</Text>
-      <FlatList
-        data={FAVORITES}
-        keyExtractor={item => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.favoriteCard}>
-            <Text style={styles.favoriteIcon}>{item.icon}</Text>
-            <Text style={styles.favoriteName}>{item.name}</Text>
-          </View>
-        )}
-      />
-      <Text style={styles.sectionHeader}>Past Orders</Text>
-      <FlatList
-        data={PAST_ORDERS}
-        keyExtractor={item => item.id}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        renderItem={({ item }) => (
-          <View style={styles.pastOrderCard}>
-            <Text style={styles.pastOrderIcon}>{item.icon}</Text>
-            <Text style={styles.pastOrderName}>{item.name}</Text>
-          </View>
-        )}
-      />
-      <TouchableOpacity style={styles.mapButton} onPress={() => navigation.navigate('MapScreen')}>
-        <Text style={styles.mapButtonText}>View Map</Text>
-      </TouchableOpacity>
-    </View>
+        </View>
+
+        <FlatList
+          data={NEARBY_TRUCKS}
+          keyExtractor={item => item.id}
+          renderItem={({ item }) => (
+            <TouchableOpacity
+              style={styles.truckCard}
+              onPress={() => navigation.navigate('TruckDetails', { truckId: item.id })}
+            >
+              <View style={styles.truckIconContainer}>
+                <Text style={styles.truckIcon}>{item.icon}</Text>
+              </View>
+              <View style={styles.truckInfo}>
+                <Text style={styles.truckName}>{item.name}</Text>
+                <View style={styles.truckMetaRow}>
+                  <Ionicons name="location-outline" size={12} color="#888" />
+                  <Text style={styles.truckDistance}>{item.distance} away</Text>
+                  <Ionicons name="star" size={12} color="#F9AD44" style={{ marginLeft: 8 }} />
+                  <Text style={styles.truckRating}>{item.rating}</Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          )}
+          style={styles.trucksList}
+        />
+      </View>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#FCFAF7', 
-    padding: 16,
-    paddingBottom: 100, // Add padding to prevent overlap with tab bar
-  },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
-  searchInput: {
-    flex: 1,
-    backgroundColor: '#fff',
-    borderRadius: 16,
-    padding: 12,
-    fontSize: 16,
-    marginRight: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  settingsButton: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 8,
-    borderWidth: 1,
-    borderColor: '#eee',
-  },
-  sectionHeader: { fontSize: 18, fontWeight: 'bold', marginTop: 16, marginBottom: 8 },
-  filterButton: {
-    padding: 8,
-    borderWidth: 1,
-    borderRadius: 8,
-    marginRight: 8,
-    backgroundColor: '#eee',
-  },
-  filterButtonActive: {
-    backgroundColor: '#cde',
-    borderColor: '#88a',
-  },
-  truckCard: {
+  safeArea: { flex: 1, backgroundColor: '#F9F9F9' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  container: { flex: 1, padding: 16 },
+  searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff',
+    backgroundColor: '#EEEEEF',
+    borderRadius: 20,
+    paddingHorizontal: 12,
+    marginBottom: 16,
+  },
+  searchIcon: { marginRight: 8 },
+  searchInput: { flex: 1, fontSize: 16, paddingVertical: 10, color: '#333' },
+  cuisineFilterContainer: { paddingVertical: 8 },
+  cuisineButton: {
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: 80,
+    height: 80,
     borderRadius: 12,
-    padding: 12,
+    backgroundColor: '#F1F1F2',
+    marginRight: 8,
+  },
+  cuisineButtonActive: { backgroundColor: '#FF6B6B' },
+  cuisineIcon: { fontSize: 24, marginBottom: 4 },
+  cuisineText: { color: '#555', fontSize: 12, fontWeight: '500' },
+  cuisineTextActive: { color: '#FFF', fontWeight: '600' },
+  featureButtonsRow: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 16 },
+  featureButton: {
+    flex: 1,
+    alignItems: 'center',
+    backgroundColor: '#FFF',
+    borderRadius: 12,
+    padding: 16,
+    marginHorizontal: 6,
+    elevation: 2,
+  },
+  featureIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#F0F7FF',
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 8,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 4, elevation: 2,
   },
-  truckIcon: { fontSize: 32, marginRight: 12 },
-  truckName: { fontSize: 16, fontWeight: 'bold' },
-  truckDistance: { color: '#888', fontSize: 14 },
-  favoriteCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginRight: 12,
-    minWidth: 100,
-  },
-  favoriteIcon: { fontSize: 28 },
-  favoriteName: { fontSize: 14, marginTop: 4 },
-  pastOrderCard: {
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    padding: 12,
-    alignItems: 'center',
-    marginRight: 12,
-    minWidth: 100,
-  },
-  pastOrderIcon: { fontSize: 28 },
-  pastOrderName: { fontSize: 14, marginTop: 4 },
-  mapButton: {
-    backgroundColor: '#F28C28',
-    borderRadius: 16,
-    paddingVertical: 16,
-    alignItems: 'center',
-    marginTop: 24,
-    marginBottom: 20, // Add bottom margin for spacing
-  },
-  mapButtonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  featureText: { color: '#333', fontSize: 14, fontWeight: '500' },
+  sectionHeader: { flexDirection: 'row', justifyContent: 'space-between', marginVertical: 12 },
+  sectionTitle: { fontSize: 18, fontWeight: '700', color: '#333' },
+  seeAllText: { color: '#F28C28', fontSize: 14 },
+  truckCard: { flexDirection: 'row', padding: 12, backgroundColor: '#FFF', borderRadius: 12, marginBottom: 10, elevation: 2 },
+  truckIconContainer: { width: 50, height: 50, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  truckIcon: { fontSize: 24 },
+  truckInfo: { flex: 1 },
+  truckName: { fontSize: 16, fontWeight: '600', color: '#333' },
+  truckMetaRow: { flexDirection: 'row', alignItems: 'center', marginTop: 4 },
+  truckDistance: { color: '#888', fontSize: 12, marginLeft: 4 },
+  truckRating: { color: '#888', fontSize: 12, marginLeft: 4 },
 });

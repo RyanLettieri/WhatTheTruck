@@ -3,6 +3,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { getCurrentUser, fetchProfileById } from './src/api/appwrite';
 import { ActivityIndicator, View, Text, Image } from 'react-native';
+import { UserProvider } from './src/contexts/UserContext';
 
 import CustomerTabs from './src/navigation/CustomerTabs';
 import SignIn from './src/pages/SignIn';
