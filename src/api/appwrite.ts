@@ -140,16 +140,22 @@ export async function fetchTruckById(truckId: string) {
   }
 }
 
+// Ensure this function is properly implemented
+
 export async function updateTruckAvailability(truckId: string, available: boolean) {
   try {
-    return await databases.updateDocument(
+    const updated = await databases.updateDocument(
       APPWRITE_DATABASE_ID,
       COLLECTION_TRUCKS,
       truckId,
-      { available }
+      {
+        available: available
+      }
     );
+    
+    return updated;
   } catch (error) {
-    console.log('updateTruckAvailability error:', error);
+    console.error('Error updating truck availability:', error);
     return null;
   }
 }
@@ -630,7 +636,7 @@ export async function fetchOrderById(orderId: string) {
 
 // Add this function to fetch orders for a specific truck
 
-export async function fetchTruckOrders(truckId: string) {
+export async function fetchTruckOrders(truckId: string, limit = 5) {
   try {
     const response = await databases.listDocuments(
       APPWRITE_DATABASE_ID,
@@ -638,7 +644,7 @@ export async function fetchTruckOrders(truckId: string) {
       [
         Query.equal('truck_id', truckId),
         Query.orderDesc('created_at'),
-        Query.limit(100)
+        Query.limit(limit)
       ]
     );
     
@@ -649,22 +655,182 @@ export async function fetchTruckOrders(truckId: string) {
   }
 }
 
-// Add this function to update order status
+// Add or update this function to fetch orders for a specific user's truck
 
+export async function fetchRecentTruckOrders(truckId: string, limit = 5) {
+  try {
+    const response = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      [
+        Query.equal('truck_id', truckId),
+        Query.orderDesc('created_at'),
+        Query.limit(limit)
+      ]
+    );
+    
+    return response.documents;
+  } catch (error) {
+    console.error('Error fetching recent truck orders:', error);
+    return [];
+  }
+}
+
+/**
+ * Fetch orders for a specific truck
+ * @param truckId The ID of the truck to fetch orders for
+ * @returns Array of orders with related data
+ */
+export async function fetchOrders(truckId: string) {
+  try {
+    console.log(`Fetching orders for truck ID: ${truckId}`);
+    
+    // Get all orders for this truck
+    const ordersRes = await databases.listDocuments(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      [
+        Query.equal('truck_id', truckId),
+        Query.orderDesc('created_at')
+      ]
+    );
+    
+    console.log(`Found ${ordersRes.documents.length} orders`);
+    
+    // Process each order to properly include related data
+    const processedOrders = await Promise.all(
+      ordersRes.documents.map(async (order) => {
+        try {
+          // Get the truck details - since we already have truck_id as relationship
+          let truckDetails = null;
+          if (order.truck_id && typeof order.truck_id === 'object' && order.truck_id.$id) {
+            try {
+              truckDetails = await databases.getDocument(
+                APPWRITE_DATABASE_ID,
+                COLLECTION_TRUCKS,
+                order.truck_id.$id
+              );
+            } catch (truckErr) {
+              console.log(`Error fetching truck for order ${order.$id}:`, truckErr);
+            }
+          }
+          
+          // Handle menu_items relationship - as shown in your schema
+          let menuItems = [];
+          if (order.menu_items && Array.isArray(order.menu_items)) {
+            // If menu_items is already populated, extract relevant info
+            menuItems = order.menu_items.map(item => {
+              // Handle if the item is a relationship object
+              if (typeof item === 'object' && item.$id) {
+                return {
+                  id: item.$id,
+                  name: item.name || 'Unknown item',
+                  price: item.price || 0,
+                  quantity: 1 // Default quantity
+                };
+              }
+              return item;
+            });
+          } else if (order.menu_items && typeof order.menu_items === 'object' && !Array.isArray(order.menu_items)) {
+            // If it's a single relationship object
+            menuItems = [{
+              id: order.menu_items.$id,
+              name: order.menu_items.name || 'Unknown item',
+              price: order.menu_items.price || 0,
+              quantity: 1
+            }];
+          }
+          
+          // Get customer info if available
+          let customerDetails = null;
+          if (order.customer_id && typeof order.customer_id === 'object' && order.customer_id.$id) {
+            try {
+              customerDetails = await databases.getDocument(
+                APPWRITE_DATABASE_ID,
+                COLLECTION_USERS,
+                order.customer_id.$id
+              );
+            } catch (customerErr) {
+              console.log(`Error fetching customer for order ${order.$id}:`, customerErr);
+            }
+          }
+          
+          // Return the enriched order
+          return {
+            ...order,
+            truck_details: truckDetails,
+            processed_menu_items: menuItems,
+            customer_details: customerDetails
+          };
+        } catch (err) {
+          console.log(`Error processing order ${order.$id}:`, err);
+          return order; // Return the original order if processing failed
+        }
+      })
+    );
+    
+    return processedOrders;
+  } catch (error) {
+    console.error('fetchOrders error:', error);
+    return []; // Return empty array instead of throwing to prevent app crashes
+  }
+}
+
+/**
+ * Update the status of an order
+ * @param orderId The ID of the order to update
+ * @param status The new status for the order
+ * @returns Updated order document
+ */
 export async function updateOrderStatus(orderId: string, status: string) {
   try {
-    const order = await databases.updateDocument(
+    const res = await databases.updateDocument(
       APPWRITE_DATABASE_ID,
       COLLECTION_ORDERS,
       orderId,
-      {
-        status: status
+      { 
+        status: status,
+        updated_at: new Date().toISOString()
       }
     );
-    
-    return order;
+    return res;
   } catch (error) {
-    console.error('Error updating order status:', error);
-    return null;
+    console.log('updateOrderStatus error:', error);
+    throw error;
+  }
+}
+
+/**
+ * Cancel an order
+ * @param orderId The ID of the order to cancel
+ * @returns Success or error
+ */
+export async function cancelOrder(orderId: string) {
+  try {
+    // Option 1: Update status to cancelled
+    const res = await databases.updateDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      orderId,
+      { 
+        status: 'cancelled',
+        cancelled_at: new Date().toISOString()
+      }
+    );
+    return res;
+    
+    // Option 2: Delete the order completely
+    // Uncomment this and comment the above if you prefer deletion
+    /*
+    const res = await databases.deleteDocument(
+      APPWRITE_DATABASE_ID,
+      COLLECTION_ORDERS,
+      orderId
+    );
+    return res;
+    */
+  } catch (error) {
+    console.log('cancelOrder error:', error);
+    throw error;
   }
 }

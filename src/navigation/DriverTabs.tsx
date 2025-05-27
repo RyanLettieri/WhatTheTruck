@@ -2,7 +2,7 @@ import React from 'react';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { createStackNavigator } from '@react-navigation/stack';
 import DriverDashboard from '../pages/DriverDashboard';
-import OrdersScreen from '../pages/OrdersScreen';
+import DriverOrdersScreen from '../pages/DriverOrdersScreen';
 import MessagesScreen from '../pages/MessagesScreen';
 import DriverProfile from '../pages/DriverProfile';
 import TruckDetails from '../pages/TruckDetails';
@@ -30,7 +30,7 @@ function DashboardStack() {
 function OrdersStack() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="OrdersList" component={OrdersScreen} />
+      <Stack.Screen name="OrdersList" component={DriverOrdersScreen} />
       {/* Add other order-related screens here if needed */}
     </Stack.Navigator>
   );

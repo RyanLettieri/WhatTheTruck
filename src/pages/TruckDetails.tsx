@@ -28,11 +28,11 @@ import { useModals } from '../hooks/useModals';
 import { useMenuHandlers } from '../hooks/useMenuHandlers';
 
 export default function TruckDetails({ route, navigation }: any) {
-  const { truck } = route.params || {};
+  const { truck, initialTab } = route.params || {};
   const [updating, setUpdating] = useState(false);
   const [expandedMenus, setExpandedMenus] = useState<Record<string, boolean>>({});
   const [sortBy, setSortBy] = useState<'recent' | 'rating'>('recent');
-  const [activeTab, setActiveTab] = useState('orders');
+  const [activeTab, setActiveTab] = useState(initialTab || 'orders');
   
   // Separate state for all orders and filtered orders
   const [allOrders, setAllOrders] = useState([]);
