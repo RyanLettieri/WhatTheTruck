@@ -2,6 +2,11 @@
 
 WhatTheTruck is a React Native mobile app that connects food truck drivers and customers. Drivers can manage their trucks, set availability, and update menus, while customers can browse trucks, view maps, and manage their accounts.
 
+## Demo
+
+📽️ [Watch the demo video](demo/demo_video.mp4)  
+*(Open in browser or download to view if preview doesn't work.)*
+
 ---
 
 ## Features
