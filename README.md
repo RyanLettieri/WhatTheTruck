@@ -4,7 +4,7 @@ WhatTheTruck is a React Native mobile app that connects food truck drivers and c
 
 ## Demo
 
-📽️ [Watch the demo video](demo/demo_video.mp4)  
+📽️ [Watch the demo video](demos/demo_video.mp4)  
 *(Open in browser or download to view if preview doesn't work.)*
 
 ---
